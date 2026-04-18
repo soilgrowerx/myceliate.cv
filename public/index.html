@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myceliate.cv - Conversational Resume</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #0056b3; }
+        .input-area { display: flex; margin-bottom: 20px; }
+        input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px 0 0 4px; font-size: 16px; }
+        button { padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 0 4px 4px 0; cursor: pointer; font-size: 16px; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        #response-area { background-color: #e9ecef; padding: 20px; border-radius: 4px; min-height: 100px; white-space: pre-wrap; word-wrap: break-word; border: 1px solid #ccc; }
+        #loading { text-align: center; display: none; margin-top: 10px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Myceliate.cv</h1>
+        <p>Ask me anything about George Steward:</p>
+        <div class="input-area">
+            <input type="text" id="questionInput" placeholder="e.g., What's George's professional background?">
+            <button onclick="askQuestion()">Ask</button>
+        </div>
+        <div id="loading">Loading...</div>
+        <div id="response-area"></div>
+    </div>
+
+    <script>
+        async function askQuestion() {
+            const questionInput = document.getElementById('questionInput');
+            const responseArea = document.getElementById('response-area');
+            const loading = document.getElementById('loading');
+            const question = questionInput.value.trim();
+
+            if (!question) {
+                responseArea.innerHTML = '<p class="error">Please enter a question.</p>';
+                return;
+            }
+
+            responseArea.innerHTML = '';
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: question })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                responseArea.innerText = data.answer || 'No answer found.';
+            } catch (error) {
+                console.error('Error:', error);
+                responseArea.innerHTML = `<p class="error">Failed to fetch response: ${error.message}</p>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
