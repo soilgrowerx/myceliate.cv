@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myceliate CV | Review Mode</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="mycelium-canvas"></canvas>
+
+    <div class="glass-overlay split-layout">
+        
+        <!-- LEFT COLUMN: The Intelligence Chat -->
+        <div class="chat-column">
+            <div class="header">
+                <h1>Myceliate<span>.cv</span></h1>
+                <p class="subtitle">Direct neural line explicitly open to assist your review.</p>
+                <a href="/george" class="review-link" style="position: absolute; top: 15px; left: 15px; right: auto; padding: 6px 12px; font-size: 0.8rem;">
+                    ← Back
+                </a>
+            </div>
+
+            <div class="chat-container">
+                <div id="messages-area" class="messages-area">
+                    <div class="message ai-message">
+                        <div class="message-content">
+                            I am the synthesis of George's memory, grounded in truth. Ask me specific questions about what he builds, his background, or his values.
+                            
+                            <div class="suggestion-chips" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
+                                <button class="chip" onclick="document.getElementById('questionInput').value = 'What does George do?'; document.getElementById('ask-btn').click();" style="background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.4); color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">What does George do?</button>
+                                <button class="chip" onclick="document.getElementById('questionInput').value = 'How does he work?'; document.getElementById('ask-btn').click();" style="background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.4); color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">How does he work?</button>
+                                <button class="chip" onclick="document.getElementById('questionInput').value = 'What\'s he building?'; document.getElementById('ask-btn').click();" style="background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.4); color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">What's he building?</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-container">
+                    <input type="text" id="questionInput" placeholder="Ask about projects, history..." autocomplete="off">
+                    <button id="ask-btn">
+                        <svg viewBox="0 0 24 24" fill="none" class="send-icon">
+                            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: The Review Flow -->
+        <div class="form-column">
+            <div class="review-scroll-area">
+                <div class="review-container">
+                    
+                    <!-- STEP 1: CODEWORD GATE -->
+                    <div id="step-gate" class="step active">
+                        <div class="review-header">
+                            <h1>Neural Gate</h1>
+                            <p>Only people who actually know George can leave a review. Solve the riddle:</p>
+                            <p style="font-style: italic; color: #64ffda; margin: 20px 0;">"The code word is a living entity that George aspires to be."</p>
+                        </div>
+                        
+                        <div class="form-group" style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                            <input type="text" id="codeword" placeholder="Awaken the network..." autocomplete="off" onkeypress="if(event.key === 'Enter') validateGate()" style="width: 80%; text-align: center; font-size: 1.2rem; letter-spacing: 2px;">
+                        </div>
+                        
+                        <div id="gate-error" class="error-message">Incorrect codeword.</div>
+                        
+                        <button class="submit-btn" onclick="validateGate()">Unlock Core</button>
+                    </div>
+
+                    <!-- STEP 2: REVIEW FORM -->
+                    <div id="step-form" class="step">
+                        <div class="review-header">
+                            <h1 style="font-size: 1.6rem;">Network Integration</h1>
+                            <p style="margin-bottom: 20px;">Your input will become an active memory.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Your Name (Optional)</label>
+                            <input type="text" id="r-name" placeholder="John Doe">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Who are you reviewing?</label>
+                            <input type="text" id="r-reviewee" value="George Steward" readonly style="color: #64ffda; border-color: rgba(100,255,218,0.3); background: rgba(0,0,0,0.2); cursor: not-allowed; user-select: none;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Relationship to target</label>
+                            <input type="text" id="r-relationship" placeholder="e.g. Client, Manager, Co-founder">
+                        </div>
+
+                        <div class="form-group">
+                            <label>How long have you known them?</label>
+                            <input type="text" id="r-duration" placeholder="e.g. 3 years">
+                        </div>
+
+                        <div class="form-group">
+                            <label>What do they do well?</label>
+                            <textarea id="r-strengths" placeholder="Describe their core strengths..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>What makes them different?</label>
+                            <textarea id="r-differences" placeholder="How do they stand out from others..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Would you work with them again?</label>
+                            <input type="text" id="r-recommendation" placeholder="Yes, because...">
+                        </div>
+
+                        <div id="form-error" class="error-message">Please fill out all required fields.</div>
+
+                        <button class="submit-btn" onclick="submitReview()" id="submit-btn-element">Transmit to Brain</button>
+                    </div>
+
+                    <!-- STEP 3: SUCCESS -->
+                    <div id="step-success" class="step">
+                        <div class="success-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#64ffda; width: 64px; margin-bottom: 20px;">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            <h1 style="font-size: 1.5rem;">Integration Complete</h1>
+                            <p>Your memory has been synthesized.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        function validateGate() {
+            const input = document.getElementById('codeword').value.trim().toUpperCase();
+            const btn = document.querySelector('#step-gate .submit-btn');
+            
+            if (input === 'FUNGI') {
+                document.getElementById('gate-error').style.display = 'none';
+                document.getElementById('step-gate').classList.remove('active');
+                setTimeout(() => {
+                    document.getElementById('step-form').classList.add('active');
+                }, 50);
+            } else {
+                document.getElementById('gate-error').style.display = 'block';
+                btn.style.transform = 'translatex(10px)';
+                setTimeout(() => btn.style.transform = 'translatex(-10px)', 100);
+                setTimeout(() => btn.style.transform = 'translatex(10px)', 200);
+                setTimeout(() => btn.style.transform = 'translatex(0)', 300);
+            }
+        }
+
+        async function submitReview() {
+            const btn = document.getElementById('submit-btn-element');
+            const data = {
+                codeword: document.getElementById('codeword').value.trim(),
+                name: document.getElementById('r-name').value.trim(),
+                reviewee: document.getElementById('r-reviewee').value.trim(),
+                relationship: document.getElementById('r-relationship').value.trim(),
+                duration: document.getElementById('r-duration').value.trim(),
+                strengths: document.getElementById('r-strengths').value.trim(),
+                differences: document.getElementById('r-differences').value.trim(),
+                recommendation: document.getElementById('r-recommendation').value.trim()
+            };
+
+            // Basic validation (Name is optional now)
+            if (!data.reviewee || !data.relationship || !data.strengths || !data.differences || !data.recommendation) {
+                document.getElementById('form-error').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('form-error').style.display = 'none';
+            btn.textContent = 'Transmitting...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    document.getElementById('step-form').classList.remove('active');
+                    setTimeout(() => {
+                        document.getElementById('step-success').classList.add('active');
+                    }, 50);
+                } else {
+                    document.getElementById('form-error').textContent = result.error || 'Failed to submit.';
+                    document.getElementById('form-error').style.display = 'block';
+                    btn.textContent = 'Transmit to Brain';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                document.getElementById('form-error').textContent = 'Network error.';
+                document.getElementById('form-error').style.display = 'block';
+                btn.textContent = 'Transmit to Brain';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
