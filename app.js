@@ -153,8 +153,43 @@ app.post('/query', async (req, res) => {
                         const docTags = doc.tags || [];
                         return !docTags.some(tag => filterTags.includes(tag));
                     });
-                    const docs = filteredDocs.map(doc => doc.content || doc.preview || JSON.stringify(doc));
-                    rawDocs = docs.join('\n\n---\n\n');
+                    
+                    // TWO-STEP RETRIEVAL FIX: Fetch the full body for the top 3 results
+                    const topDocs = filteredDocs.slice(0, 3);
+                    const fullTextDocs = [];
+                    for (const doc of topDocs) {
+                        try {
+                            const readPayload = {
+                                jsonrpc: "2.0",
+                                id: Date.now(),
+                                method: "tools/call",
+                                params: {
+                                    name: "brain_read",
+                                    arguments: { path: doc.path || doc.id }
+                                }
+                            };
+                            const readResponse = await fetch(MYCELIAL_BRAIN_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(readPayload)
+                            });
+                            if (readResponse.ok) {
+                                const readData = await readResponse.json();
+                                if (readData.result && readData.result.content && readData.result.content.length > 0) {
+                                    fullTextDocs.push(readData.result.content[0].text);
+                                }
+                            }
+                        } catch (err) {
+                            console.error("Failed to read doc", doc.path, err);
+                        }
+                    }
+                    
+                    if (fullTextDocs.length > 0) {
+                        rawDocs = fullTextDocs.join('\n\n---\n\n');
+                    } else {
+                        // Fallback if read fails
+                        rawDocs = filteredDocs.map(doc => doc.content || doc.preview || JSON.stringify(doc)).join('\n\n---\n\n');
+                    }
                 } else {
                     rawDocs = "No documents found.";
                 }
