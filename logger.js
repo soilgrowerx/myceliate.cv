@@ -1,5 +1,5 @@
 const { Storage } = require('@google-cloud/storage');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 let storage = null;
 function getStorage() {
@@ -19,7 +19,7 @@ async function logConversation({ query, answer, docsRetrieved, reviewerType, use
 
         const logEntry = {
             timestamp: new Date().toISOString(),
-            session_id: uuidv4(),
+            session_id: crypto.randomUUID(),
             query,
             answer,
             docs_retrieved: docsRetrieved,
