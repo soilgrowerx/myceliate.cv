@@ -1,13 +1,18 @@
 const { Storage } = require('@google-cloud/storage');
 const { v4: uuidv4 } = require('uuid');
 
-const storage = new Storage();
+let storage = null;
+function getStorage() {
+    if (!storage) storage = new Storage();
+    return storage;
+}
+
 // Fallback to myceliate-cv-logs if env var isn't set
 const BUCKET_NAME = process.env.LOG_BUCKET_NAME || 'myceliate-cv-logs';
 
 async function logConversation({ query, answer, docsRetrieved, reviewerType, userAgent }) {
     try {
-        const bucket = storage.bucket(BUCKET_NAME);
+        const bucket = getStorage().bucket(BUCKET_NAME);
         const date = new Date().toISOString().split('T')[0];
         const fileName = `conversations/${date}.jsonl`;
         const file = bucket.file(fileName);
@@ -42,7 +47,7 @@ async function logConversation({ query, answer, docsRetrieved, reviewerType, use
 
 async function getRecentLogs(limit = 100, offset = 0) {
     try {
-        const bucket = storage.bucket(BUCKET_NAME);
+        const bucket = getStorage().bucket(BUCKET_NAME);
         const date = new Date().toISOString().split('T')[0];
         const fileName = `conversations/${date}.jsonl`;
         const file = bucket.file(fileName);

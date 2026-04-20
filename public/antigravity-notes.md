@@ -23,3 +23,8 @@ LOCAL FILES:
 - Also added to style.css
 
 STATUS: George away from computer, needs Antigravity team resolution
+
+CONTEXT FIX (auto-correction):
+- Chelsea = WIFE (Chelsea Steward), NOT LinkedIn connection
+- Avoid 'spiral' metaphor - overused, find different framing
+
