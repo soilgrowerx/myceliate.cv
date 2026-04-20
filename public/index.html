@@ -3,69 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Myceliate.cv - Conversational Resume</title>
+    <title>Myceliate — Personal World Model</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #0056b3; }
-        .input-area { display: flex; margin-bottom: 20px; }
-        input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px 0 0 4px; font-size: 16px; }
-        button { padding: 12px 20px; background-color: #007bff; color: white; border: none; border-radius: 0 4px 4px 0; cursor: pointer; font-size: 16px; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        #response-area { background-color: #e9ecef; padding: 20px; border-radius: 4px; min-height: 100px; white-space: pre-wrap; word-wrap: break-word; border: 1px solid #ccc; }
-        #loading { text-align: center; display: none; margin-top: 10px; }
-        .error { color: red; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #050508;
+            color: #e8e8ec;
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            position: relative;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw;
+            height: 80vw;
+            background: radial-gradient(circle, rgba(0,210,255,0.08) 0%, rgba(0,0,0,0) 60%);
+            pointer-events: none;
+        }
+        .logo {
+            font-size: 4rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 50%, #00d2ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shimmer 4s linear infinite;
+            margin-bottom: 8px;
+        }
+        @keyframes shimmer {
+            to { background-position: 200% center; }
+        }
+        .tagline {
+            font-size: 1.3rem;
+            color: #a0a0b0;
+            font-weight: 300;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        .mission {
+            max-width: 600px;
+            text-align: center;
+            color: #b0b0bc;
+            font-size: 1.05rem;
+            margin-bottom: 40px;
+            line-height: 1.7;
+        }
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, rgba(0,210,255,0.15), rgba(58,123,213,0.15));
+            border: 1px solid rgba(0,210,255,0.4);
+            border-radius: 12px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(0,210,255,0.25);
+            border-color: rgba(0,210,255,0.7);
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1000px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+        .feature-card {
+            background: rgba(15,15,20,0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 28px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            border-color: rgba(0,210,255,0.3);
+            transform: translateY(-4px);
+        }
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+        .feature-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .feature-desc {
+            color: #909098;
+            font-size: 0.95rem;
+        }
+        .protocol-section {
+            max-width: 800px;
+            margin: 80px auto;
+            padding: 40px;
+            background: rgba(10,10,15,0.5);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .protocol-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .protocol-content {
+            color: #b0b0bc;
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+        .protocol-content strong {
+            color: #00d2ff;
+        }
+        .trajectory {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 30px 0;
+        }
+        .trajectory-step {
+            padding: 10px 20px;
+            background: rgba(0,210,255,0.1);
+            border: 1px solid rgba(0,210,255,0.3);
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #fff;
+        }
+        .trajectory-arrow {
+            color: #00d2ff;
+            font-size: 1.2rem;
+        }
+        .footer {
+            text-align: center;
+            padding: 40px;
+            color: #606068;
+            font-size: 0.9rem;
+        }
+        .footer a {
+            color: #00d2ff;
+            text-decoration: none;
+        }
+    
+        /* ── Mobile responsive ── */
+        @media (max-width: 640px) {
+            .logo {
+                font-size: 2.4rem;
+                letter-spacing: 2px;
+            }
+            .tagline {
+                font-size: 1rem;
+            }
+            .mission {
+                font-size: 0.95rem;
+                padding: 0 8px;
+            }
+            .features {
+                grid-template-columns: 1fr;
+                padding: 0 16px;
+                margin: 40px auto;
+            }
+            .feature-card {
+                width: 100%;
+                min-width: 0;
+            }
+            .trajectory {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            .trajectory-arrow {
+                transform: rotate(90deg);
+            }
+            .protocol-section {
+                padding: 24px 16px;
+                margin: 40px 16px;
+            }
+            .protocol-title {
+                font-size: 1.4rem;
+            }
+            .cta-button {
+                padding: 14px 24px;
+                font-size: 1rem;
+            }
+        }
+        @media (max-width: 900px) and (min-width: 641px) {
+            .features {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Myceliate.cv</h1>
-        <p>Ask me anything about George Steward:</p>
-        <div class="input-area">
-            <input type="text" id="questionInput" placeholder="e.g., What's George's professional background?">
-            <button onclick="askQuestion()">Ask</button>
+    <div class="hero">
+        <div class="logo">MYCELIATE</div>
+        <p class="tagline">Personal World Model & Living Identity</p>
+        
+        <p class="mission">
+            A living memory system that grows with you — not a static resume, but a dynamic representation of who you are, what you've built, and what comes next.
+        </p>
+        
+        <a href="/george" class="cta-button">
+            Talk to George →
+        </a>
+        
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <div class="feature-title">World Model Architecture</div>
+                <div class="feature-desc">Replaces middle management with software-maintained reality. Tracks resources, objects, constraints, and outcomes — so you stay in executive mode.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <div class="feature-title">STIM Protocol</div>
+                <div class="feature-desc">Stasis Through Inferred Memory — a nature-based AI alignment framework grounded in the irrefutable truths of biological systems.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <div class="feature-title">Outcome Encoding</div>
+                <div class="feature-desc">Every action gets tracked through to result. Not just what happened — but what worked, what failed, and under what conditions.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <div class="feature-title">Interpretive Boundary</div>
+                <div class="feature-desc">Distinguishes fact from hypothesis. The system never halluculates with confidence — it labels what it knows vs. what it infers.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⏱️</div>
+                <div class="feature-title">Time as Moat</div>
+                <div class="feature-desc">Architecture can be copied. Months of accumulated outcome loops, high-fidelity signals, and verified capabilities cannot.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🌱</div>
+                <div class="feature-title">Self-Growing</div>
+                <div class="feature-desc">Feeds on your work as a byproduct — GitHub commits, calendar events, outcomes. No manual data entry required.</div>
+            </div>
         </div>
-        <div id="loading">Loading...</div>
-        <div id="response-area"></div>
+        
+        <div class="protocol-section">
+            <h2 class="protocol-title">The Trajectory</h2>
+            <div class="trajectory">
+                <span class="trajectory-step">Plant Killer</span>
+                <span class="trajectory-arrow">→</span>
+                <span class="trajectory-step">Gardener</span>
+                <span class="trajectory-arrow">→</span>
+                <span class="trajectory-step">Soil Grower</span>
+                <span class="trajectory-arrow">→</span>
+                <span class="trajectory-step">Sanctuary Builder</span>
+                <span class="trajectory-arrow">→</span>
+                <span class="trajectory-step">Earth Regenerator</span>
+            </div>
+            <p class="protocol-content">
+                <strong>STIM</strong> grounds every thought in nature's physics. Like mycelium connecting trees and transferring nutrients across forests, this system connects your knowledge and transfers context across every tool and agent you use.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>Built on the STIM Protocol — Nature-based AI alignment</p>
+            <p style="margin-top: 10px;">
+                <a href="https://github.com/soilgrowerx/mycelial-brain" target="_blank">GitHub</a> · 
+                <a href="/george">Talk to George</a> ·
+                <a href="/review">Write a Review</a>
+            </p>
+        </div>
     </div>
-
-    <script>
-        async function askQuestion() {
-            const questionInput = document.getElementById('questionInput');
-            const responseArea = document.getElementById('response-area');
-            const loading = document.getElementById('loading');
-            const question = questionInput.value.trim();
-
-            if (!question) {
-                responseArea.innerHTML = '<p class="error">Please enter a question.</p>';
-                return;
-            }
-
-            responseArea.innerHTML = '';
-            loading.style.display = 'block';
-
-            try {
-                const response = await fetch('/query', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ query: question })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                responseArea.innerText = data.answer || 'No answer found.';
-            } catch (error) {
-                console.error('Error:', error);
-                responseArea.innerHTML = `<p class="error">Failed to fetch response: ${error.message}</p>`;
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
-    </script>
 </body>
 </html>
