@@ -264,7 +264,7 @@ app.post('/query', async (req, res) => {
 // Review submission endpoint for Fungi Review System
 app.post('/api/review', async (req, res) => {
     try {
-        const { codeword, reviewee, relationship, duration, strengths, differences, recommendation } = req.body;
+        const { codeword, reviewee, relationship, duration, unusuallyGoodAt, badFitFor, workTogetherAgain } = req.body;
         let { name } = req.body;
         
         // Verify FUNGI codeword (case-insensitive)
@@ -272,7 +272,7 @@ app.post('/api/review', async (req, res) => {
             return res.status(403).json({ error: 'Invalid codeword. Access denied.' });
         }
         
-        if (!reviewee || !relationship || !strengths || !recommendation) {
+        if (!reviewee || !relationship || !duration || !unusuallyGoodAt || !badFitFor || !workTogetherAgain) {
             return res.status(400).json({ error: 'Please fill out all required fields.' });
         }
         
@@ -283,20 +283,20 @@ app.post('/api/review', async (req, res) => {
         const pathSafeName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
         const timestamp = new Date().toISOString();
         
+        const signalWeight = (workTogetherAgain.toUpperCase() === 'YES') ? '1.0' : '-1.0';
+
         // Format the new review block
         const newReviewBlock = `## REVIEW OF: ${reviewee.toUpperCase()} (Submitted: ${timestamp})
 Reviewer: ${name}
 Relationship: ${relationship}
-Known For: ${duration}
+Known Duration: ${duration}
+Binary Signal (Work Together Again?): ${workTogetherAgain.toUpperCase()} (Weight: ${signalWeight})
 
-**Strengths (What they do well):**
-${strengths}
+**Unusually Good At:**
+${unusuallyGoodAt}
 
-**Differentiators (What makes them different):**
-${differences}
-
-**Recommendation (Would you work with them again?):**
-${recommendation}`;
+**Bad Fit For (Anti-Persona):**
+${badFitFor}`;
 
         const docPath = "master-reviews";
         let existingContent = "";

@@ -96,23 +96,32 @@
                         </div>
 
                         <div class="form-group">
-                            <label>How long have you known them?</label>
-                            <input type="text" id="r-duration" placeholder="e.g. 3 years">
+                            <label>Known Duration</label>
+                            <select id="r-duration" class="form-select">
+                                <option value="" disabled selected>Select duration...</option>
+                                <option value="<6mo">&lt;6 months</option>
+                                <option value="6mo-1yr">6 months - 1 year</option>
+                                <option value="1-3yr">1 - 3 years</option>
+                                <option value="3yr+">3+ years</option>
+                            </select>
                         </div>
 
                         <div class="form-group">
-                            <label>What do they do well?</label>
-                            <textarea id="r-strengths" placeholder="Describe their core strengths..."></textarea>
+                            <label>Unusually Good At</label>
+                            <textarea id="r-good-at" placeholder="Describe their core strengths..." maxlength="280"></textarea>
                         </div>
 
                         <div class="form-group">
-                            <label>What makes them different?</label>
-                            <textarea id="r-differences" placeholder="How do they stand out from others..."></textarea>
+                            <label>Bad Fit For (Anti-Persona)</label>
+                            <textarea id="r-bad-fit" placeholder="In what environments or roles do they struggle..." maxlength="280"></textarea>
                         </div>
 
                         <div class="form-group">
-                            <label>Would you work with them again?</label>
-                            <input type="text" id="r-recommendation" placeholder="Yes, because...">
+                            <label>Work Together Again?</label>
+                            <div class="binary-toggle">
+                                <label><input type="radio" name="r-work-again" value="Yes"> Yes</label>
+                                <label><input type="radio" name="r-work-again" value="No"> No</label>
+                            </div>
                         </div>
 
                         <div id="form-error" class="error-message">Please fill out all required fields.</div>
@@ -170,14 +179,14 @@
                 name: document.getElementById('r-name').value.trim(),
                 reviewee: document.getElementById('r-reviewee').value.trim(),
                 relationship: document.getElementById('r-relationship').value.trim(),
-                duration: document.getElementById('r-duration').value.trim(),
-                strengths: document.getElementById('r-strengths').value.trim(),
-                differences: document.getElementById('r-differences').value.trim(),
-                recommendation: document.getElementById('r-recommendation').value.trim()
+                duration: document.getElementById('r-duration').value,
+                unusuallyGoodAt: document.getElementById('r-good-at').value.trim(),
+                badFitFor: document.getElementById('r-bad-fit').value.trim(),
+                workTogetherAgain: document.querySelector('input[name="r-work-again"]:checked') ? document.querySelector('input[name="r-work-again"]:checked').value : ''
             };
 
-            // Basic validation (Name is optional now)
-            if (!data.reviewee || !data.relationship || !data.strengths || !data.differences || !data.recommendation) {
+            // Basic validation
+            if (!data.reviewee || !data.relationship || !data.duration || !data.unusuallyGoodAt || !data.badFitFor || !data.workTogetherAgain) {
                 document.getElementById('form-error').style.display = 'block';
                 return;
             }
