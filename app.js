@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
+const stripeAPI = require('stripe');
+const stripe = process.env.STRIPE_SECRET_KEY ? stripeAPI(process.env.STRIPE_SECRET_KEY) : null;
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { logConversation, getRecentLogs } = require('./logger');
 
@@ -107,6 +109,84 @@ When sources conflict, weight higher-fidelity signals. Never present a HYPOTHESI
         return null; // Fallback to raw text
     }
 }
+
+// ==========================================
+// Stripe Integration
+// ==========================================
+app.post('/api/create-checkout-session', async (req, res) => {
+    try {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            return res.status(400).json({ error: 'Stripe configuration missing. Wait for system provisioning.' });
+        }
+        const { tier } = req.body;
+        
+        let priceId;
+        if (tier === 'spore') priceId = process.env.STRIPE_PRICE_SPORE;
+        else if (tier === 'mycelium') priceId = process.env.STRIPE_PRICE_MYCELIUM;
+        else return res.status(400).json({ error: 'Invalid tier requested.' });
+
+        if (!priceId) {
+            return res.status(400).json({ error: 'Stripe Price ID not configured for this tier yet.' });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            mode: 'subscription',
+            success_url: `${req.protocol}://${req.get('host')}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${req.protocol}://${req.get('host')}/pricing.html`,
+        });
+
+        res.json({ url: session.url });
+    } catch (e) {
+        console.error('Stripe Integration Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==========================================
+// Stripe Integration
+// ==========================================
+app.post('/api/create-checkout-session', async (req, res) => {
+    try {
+        if (!process.env.STRIPE_SECRET_KEY) {
+            return res.status(400).json({ error: 'Stripe configuration missing. Wait for system provisioning.' });
+        }
+        const { tier } = req.body;
+        
+        let priceId;
+        if (tier === 'spore') priceId = process.env.STRIPE_PRICE_SPORE;
+        else if (tier === 'mycelium') priceId = process.env.STRIPE_PRICE_MYCELIUM;
+        else return res.status(400).json({ error: 'Invalid tier requested.' });
+
+        if (!priceId) {
+            return res.status(400).json({ error: 'Stripe Price ID not configured for this tier yet.' });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            mode: 'subscription',
+            success_url: `${req.protocol}://${req.get('host')}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${req.protocol}://${req.get('host')}/pricing.html`,
+        });
+
+        res.json({ url: session.url });
+    } catch (e) {
+        console.error('Stripe Integration Error:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
 
 app.post('/query', async (req, res) => {
     try {

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
     <canvas id="mycelium-canvas"></canvas>
@@ -222,6 +223,18 @@
                 btn.disabled = false;
             }
         }
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(reg => {
+            console.log('SW Registered!', reg.scope);
+          }).catch(err => {
+            console.warn('SW failed:', err);
+          });
+        });
+      }
     </script>
 </body>
 </html>

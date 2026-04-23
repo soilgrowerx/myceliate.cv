@@ -1,21 +1,29 @@
-const { Storage } = require('@google-cloud/storage');
+const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const crypto = require('crypto');
 
-let storage = null;
-function getStorage() {
-    if (!storage) storage = new Storage();
-    return storage;
+let s3Client = null;
+function getS3Client() {
+    if (!s3Client) {
+        // Cloudflare R2 / S3 Configuration stub
+        s3Client = new S3Client({
+            region: process.env.R2_REGION || 'auto',
+            endpoint: process.env.R2_ENDPOINT || 'https://stub.r2.cloudflarestorage.com',
+            credentials: {
+                accessKeyId: process.env.R2_ACCESS_KEY_ID || 'stub_access_key',
+                secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || 'stub_secret_key',
+            },
+        });
+    }
+    return s3Client;
 }
 
-// Fallback to myceliate-cv-logs if env var isn't set
 const BUCKET_NAME = process.env.LOG_BUCKET_NAME || 'myceliate-cv-logs';
 
 async function logConversation({ query, answer, docsRetrieved, reviewerType, userAgent }) {
     try {
-        const bucket = getStorage().bucket(BUCKET_NAME);
+        const client = getS3Client();
         const date = new Date().toISOString().split('T')[0];
         const fileName = `conversations/${date}.jsonl`;
-        const file = bucket.file(fileName);
 
         const logEntry = {
             timestamp: new Date().toISOString(),
@@ -28,35 +36,47 @@ async function logConversation({ query, answer, docsRetrieved, reviewerType, use
         };
 
         const jsonlData = JSON.stringify(logEntry) + '\n';
-
-        // Check if file exists to append, or create new
-        const [exists] = await file.exists();
-        if (exists) {
-            // Native GCS append isn't supported without composition or writing to a stream.
-            // Since Cloud Run may scale concurrently, we should fetch current contents, append, and rewrite.
-            const [contents] = await file.download();
-            await file.save(contents.toString('utf8') + jsonlData, { resumable: false });
-        } else {
-            await file.save(jsonlData, { resumable: false });
+        let existingContents = '';
+        
+        try {
+            await client.send(new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: fileName }));
+            const getRes = await client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileName }));
+            existingContents = await getRes.Body.transformToString('utf8');
+        } catch (e) {
+            if (e.name !== 'NotFound') {
+                console.error('S3 Head/Get Error (File may be new):', e.message);
+            }
         }
+
+        const newContents = existingContents + jsonlData;
+
+        await client.send(new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: fileName,
+            Body: newContents,
+            ContentType: 'application/x-ndjson'
+        }));
         
     } catch (err) {
-        console.error('Failed to log conversation to GCS:', err);
+        console.error('Failed to log conversation to S3/R2:', err);
     }
 }
 
 async function getRecentLogs(limit = 100, offset = 0) {
     try {
-        const bucket = getStorage().bucket(BUCKET_NAME);
+        const client = getS3Client();
         const date = new Date().toISOString().split('T')[0];
         const fileName = `conversations/${date}.jsonl`;
-        const file = bucket.file(fileName);
         
-        const [exists] = await file.exists();
-        if (!exists) return [];
+        let contents = '';
+        try {
+            const getRes = await client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: fileName }));
+            contents = await getRes.Body.transformToString('utf8');
+        } catch (e) {
+            return []; // File probably doesn't exist yet
+        }
 
-        const [contents] = await file.download();
-        const lines = contents.toString('utf8').trim().split('\n');
+        const lines = contents.trim().split('\n');
         
         return lines
             .reverse() // Newest first
@@ -66,7 +86,7 @@ async function getRecentLogs(limit = 100, offset = 0) {
             })
             .filter(entry => entry !== null);
     } catch (err) {
-        console.error('Failed to retrieve logs:', err);
+        console.error('Failed to retrieve logs from S3/R2:', err);
         return [];
     }
 }
