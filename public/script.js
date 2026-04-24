@@ -51,10 +51,11 @@ async function askQuestion() {
     const loader = appendLoader();
 
     try {
+        const usernameRoute = window.location.pathname.replace(/^\//, '') || 'george';
         const response = await fetch('/query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: question })
+            body: JSON.stringify({ query: question, target_username: usernameRoute })
         });
 
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
