@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
+const { createClient } = require('@supabase/supabase-js');
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_KEY ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY) : null;
 const stripeAPI = require('stripe');
 const stripe = process.env.STRIPE_SECRET_KEY ? stripeAPI(process.env.STRIPE_SECRET_KEY) : null;
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -23,12 +25,23 @@ if (process.env.GEMINI_API_KEY) {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/george', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'george.html'));
-});
+
 
 app.get('/review', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'review.html'));
+});
+
+
+app.get('/:username', async (req, res, next) => {
+    const ignore = ['_health', 'review', 'api', 'query', 'public', 'pricing.html', 'dashboard.html', 'sw.js', 'manifest.json'];
+    if (ignore.includes(req.params.username) || req.params.username.includes('.')) {
+        return next();
+    }
+    if (supabase) {
+        const { data, error } = await supabase.from('profiles').select('username').eq('username', req.params.username).single();
+        if (error || !data) return res.status(404).send('Synthesized Entity Not Found.');
+    }
+    res.sendFile(path.join(__dirname, 'public', 'profile.html'));
 });
 
 app.get('/_health', (req, res) => {
@@ -190,7 +203,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
 app.post('/query', async (req, res) => {
     try {
-        const { query } = req.body;
+        const { query, target_username } = req.body;
         if (!query) {
             return res.status(400).json({ error: 'Query is required.' });
         }
@@ -205,7 +218,14 @@ app.post('/query', async (req, res) => {
             }
         };
 
-        const brainResponse = await fetch(MYCELIAL_BRAIN_URL, {
+        let brainUrl = MYCELIAL_BRAIN_URL;
+        if (target_username && supabase) {
+            const { data } = await supabase.from('profiles').select('mcp_brain_url').eq('username', target_username).single();
+            if (data && data.mcp_brain_url) {
+                brainUrl = data.mcp_brain_url;
+            }
+        }
+        const brainResponse = await fetch(brainUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(mcpPayload)
@@ -393,7 +413,7 @@ ${badFitFor}`;
                 }
             };
             
-            const readRes = await fetch(MYCELIAL_BRAIN_URL, {
+            let reviewBrainUrl = MYCELIAL_BRAIN_URL; const readRes = await fetch(reviewBrainUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(readPayload)
