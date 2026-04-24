@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myceliate CV | Brain Upgrades</title>
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .pricing-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .pricing-container h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .pricing-container p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 50px;
+        }
+
+        .tiers {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .tier-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 12px;
+            padding: 40px;
+            width: 300px;
+            text-align: left;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, border-color 0.3s;
+            position: relative;
+        }
+
+        .tier-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(100, 255, 218, 0.5);
+        }
+
+        .tier-card.popular {
+            border-color: rgba(100, 255, 218, 0.8);
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.1);
+        }
+
+        .tier-card.popular::before {
+            content: 'Recommended';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #64ffda;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .tier-name {
+            font-size: 1.5rem;
+            color: #64ffda;
+            margin-bottom: 10px;
+        }
+
+        .tier-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .tier-price span {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .tier-features {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 30px;
+        }
+
+        .tier-features li {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .tier-features li::before {
+            content: '✓';
+            color: #64ffda;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .btn-upgrade {
+            display: inline-block;
+            width: 100%;
+            padding: 12px;
+            text-align: center;
+            background: rgba(100, 255, 218, 0.1);
+            color: #64ffda;
+            text-decoration: none;
+            border: 1px solid #64ffda;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-upgrade:hover {
+            background: rgba(100, 255, 218, 0.2);
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
+        }
+
+        .btn-upgrade.primary {
+            background: #64ffda;
+            color: #0a0a0a;
+        }
+
+        .btn-upgrade.primary:hover {
+            background: #4adebb;
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="mycelium-canvas"></canvas>
+
+    <div class="glass-overlay" style="overflow-y: auto;">
+        <div class="pricing-container">
+            <h1>Inference Fidelity</h1>
+            <p>Select your integration tier and unlock Fungi Brain Syncing.</p>
+
+            <div class="tiers">
+                <div class="tier-card">
+                    <div class="tier-name">Free</div>
+                    <div class="tier-price">$0<span>/mo</span></div>
+                    <ul class="tier-features">
+                        <li>Public Profile</li>
+                        <li>Limited Context History</li>
+                        <li>Read-only Brain access</li>
+                        <li>Basic Neural Canvas</li>
+                    </ul>
+                    <a href="/george" class="btn-upgrade">Current Tier</a>
+                </div>
+
+                <div class="tier-card popular">
+                    <div class="tier-name">Spore</div>
+                    <div class="tier-price">$9<span>/mo</span></div>
+                    <ul class="tier-features">
+                        <li>Active Brain syncing (50MB)</li>
+                        <li>Standard Inference</li>
+                        <li>Mobile PWA Offline Sync</li>
+                        <li>Daily Context Logs</li>
+                    </ul>
+                    <button class="btn-upgrade primary" onclick="checkout('spore')">Synthesize Spore</button>
+                </div>
+
+                <div class="tier-card">
+                    <div class="tier-name">Mycelium</div>
+                    <div class="tier-price">$29<span>/mo</span></div>
+                    <ul class="tier-features">
+                        <li>Multi-Brain Architecture</li>
+                        <li>High-Fidelity Context Retention</li>
+                        <li>Priority Compute Inference</li>
+                        <li>Custom Tool & API Integrations</li>
+                    </ul>
+                    <button class="btn-upgrade" onclick="checkout('mycelium')">Initialize Mycelium</button>
+                </div>
+            </div>
+            
+            <a href="/george" style="color: rgba(255,255,255,0.5); text-decoration: none; margin-top: 40px; display: inline-block;">← Return to Main</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="/script.js"></script>
+    <script>
+        async function checkout(tier) {
+            try {
+                const res = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier })
+                });
+                const { url, error } = await res.json();
+                if (url) {
+                    window.location.href = url;
+                } else {
+                    alert('Integration Error: ' + (error || 'Failed to initialize session.'));
+                }
+            } catch (err) {
+                alert('Network Error. Ensure you are connected to the swarm.');
+            }
+        }
+    </script>
+</body>
+</html>

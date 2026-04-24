@@ -31,9 +31,21 @@ app.get('/review', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'review.html'));
 });
 
+app.get('/pricing', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pricing.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/signup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+
 
 app.get('/:username', async (req, res, next) => {
-    const ignore = ['_health', 'review', 'api', 'query', 'public', 'pricing.html', 'dashboard.html', 'sw.js', 'manifest.json'];
+    const ignore = ['_health', 'review', 'pricing', 'dashboard', 'signup', 'api', 'query', 'public', 'pricing.html', 'dashboard.html', 'sw.js', 'manifest.json'];
     if (ignore.includes(req.params.username) || req.params.username.includes('.')) {
         return next();
     }

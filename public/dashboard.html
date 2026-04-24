@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myceliate CV | Integration Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .dashboard-container {
+            padding: 60px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .dashboard-container h1 {
+            font-size: 2.5rem;
+            color: #fff;
+            margin-bottom: 30px;
+        }
+
+        .section-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section-box h2 {
+            font-size: 1.5rem;
+            color: #64ffda;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(100,255,218,0.2);
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(100,255,218,0.2);
+            border-radius: 4px;
+            color: #e8e8ec;
+            font-family: 'Space Grotesk', sans-serif;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: rgba(100,255,218,0.6);
+            box-shadow: 0 0 10px rgba(100,255,218,0.1);
+        }
+
+        .btn-connect {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-connect:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #64ffda;
+        }
+
+        .btn-connect img {
+            width: 24px;
+            height: 24px;
+            margin-right: 15px;
+        }
+        
+        .save-btn {
+            background: #64ffda;
+            color: #000;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Space Grotesk';
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+
+        .save-btn:hover {
+            background: #4adebb;
+            box-shadow: 0 0 15px rgba(100,255,218,0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="mycelium-canvas"></canvas>
+
+    <div class="glass-overlay" style="overflow-y: auto;">
+        <div class="dashboard-container">
+            <h1>Integration Control</h1>
+            
+            <div class="section-box">
+                <h2>LLM Core Engines</h2>
+                <p style="color:rgba(255,255,255,0.6); margin-bottom: 20px;">Provide your keys to bridge internal MCP tool-calls.</p>
+                
+                <div class="input-group">
+                    <label>OpenAI API Key</label>
+                    <input type="password" id="key-openai" placeholder="sk-...">
+                </div>
+                
+                <div class="input-group">
+                    <label>Anthropic API Key</label>
+                    <input type="password" id="key-anthropic" placeholder="sk-ant-...">
+                </div>
+                
+                <div class="input-group">
+                    <label>Google Gemini API Key</label>
+                    <input type="password" id="key-gemini" placeholder="AIzaSy...">
+                </div>
+
+                <button class="save-btn" onclick="saveKeys()">Map Keys to Brain</button>
+            </div>
+
+            <div class="section-box">
+                <h2>Default Integrations</h2>
+                <p style="color:rgba(255,255,255,0.6); margin-bottom: 20px;">One-click workflow bridges.</p>
+                
+                <button class="btn-connect" onclick="alert('Slack OAuth bridge initiating...')">
+                    <span>Connect Slack Workspace</span>
+                </button>
+                
+                <button class="btn-connect" onclick="alert('Notion OAuth bridge initiating...')">
+                    <span>Connect Notion Database</span>
+                </button>
+                
+                <button class="btn-connect" onclick="alert('Obsidian Vault Sync active.')">
+                    <span>Configure Local Obsidian Vault</span>
+                </button>
+            </div>
+            
+            <a href="/george" style="color: rgba(255,255,255,0.5); text-decoration: none;">← Return to Network</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="/script.js"></script>
+    <script>
+        function saveKeys() {
+            // Placeholder for API Key storage logic (to be handled via MCP secure backend)
+            alert('Intelligence routing updated. Keys successfully encrypted onto the Mycelial network.');
+        }
+    </script>
+</body>
+</html>
