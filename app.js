@@ -201,6 +201,43 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 });
 
+// ==========================================
+// Auth Integration
+// ==========================================
+app.post('/api/signup', async (req, res) => {
+    try {
+        if (!supabase) {
+            return res.status(400).json({ error: 'Database provisioning incomplete. Synthesization offline.' });
+        }
+        const { email, password, username } = req.body;
+        if (!email || !password || !username) {
+            return res.status(400).json({ error: 'Email, password, and username are required.' });
+        }
+
+        // Validate username formatting
+        if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
+            return res.status(400).json({ error: 'Username must be at least 3 characters and contain only letters, numbers, and underscores.' });
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    username: username.toLowerCase()
+                }
+            }
+        });
+
+        if (error) throw error;
+        
+        res.json({ message: 'Synthesization successful.', user: data.user });
+    } catch (e) {
+        console.error('Signup Error:', e);
+        res.status(500).json({ error: e.message || 'Failed to synthesize account.' });
+    }
+});
+
 app.post('/query', async (req, res) => {
     try {
         const { query, target_username } = req.body;

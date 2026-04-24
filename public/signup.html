@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myceliate CV | System Initialization</title>
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .auth-container {
+            padding: 60px 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .auth-container h1 {
+            font-size: 2.5rem;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        
+        .auth-container p {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 30px;
+        }
+
+        .auth-box {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 8px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            text-align: left;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(100,255,218,0.3);
+            border-radius: 4px;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: #64ffda;
+            box-shadow: 0 0 10px rgba(100,255,218,0.2);
+        }
+
+        .btn-submit {
+            background: #64ffda;
+            color: #000;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'Space Grotesk';
+            font-size: 1.1rem;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background: #4adebb;
+            box-shadow: 0 0 15px rgba(100,255,218,0.4);
+        }
+
+        .btn-submit:disabled {
+            background: rgba(100, 255, 218, 0.3);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .feedback {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #ff6b6b;
+            text-align: center;
+        }
+        
+        .success-feedback {
+            color: #64ffda;
+        }
+
+    </style>
+</head>
+<body>
+    <canvas id="mycelium-canvas"></canvas>
+
+    <div class="glass-overlay" style="overflow-y: auto; display: flex; align-items: center;">
+        <div class="auth-container">
+            <h1>Synthesize Identity</h1>
+            <p>Establish your node on the Mycelial network.</p>
+            
+            <div class="auth-box">
+                <form id="signup-form">
+                    <div class="input-group">
+                        <label>Public Username</label>
+                        <input type="text" id="reg-username" placeholder="e.g. soilgrower" required pattern="[a-zA-Z0-9_]{3,}">
+                        <small style="color:rgba(255,255,255,0.4); font-size:0.8rem; display:block; margin-top:4px;">Used for your public CV link: myceliate.cv/username</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" id="reg-email" placeholder="node@network.local" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Secure Key (Password)</label>
+                        <input type="password" id="reg-password" placeholder="••••••••" required minlength="6">
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="submit-btn">Initialize Genesis Node</button>
+                    <div id="feedback-msg" class="feedback"></div>
+                </form>
+            </div>
+            
+            <a href="/" style="color: rgba(255,255,255,0.5); text-decoration: none; margin-top:30px; display:inline-block;">← Return to Root</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="/script.js"></script>
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const feedback = document.getElementById('feedback-msg');
+            
+            const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            
+            btn.disabled = true;
+            btn.textContent = 'Synthesizing...';
+            feedback.textContent = '';
+            feedback.className = 'feedback';
+
+            try {
+                const res = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.error || 'Initialization failed.');
+                }
+                
+                feedback.textContent = 'Account synthesized! Please check your email for the verification link before logging in.';
+                feedback.classList.add('success-feedback');
+                
+                // Redirect to pricing funnel after wait
+                setTimeout(() => {
+                    window.location.href = '/pricing.html';
+                }, 4000);
+                
+            } catch (err) {
+                feedback.textContent = err.message;
+                btn.disabled = false;
+                btn.textContent = 'Initialize Genesis Node';
+            }
+        });
+    </script>
+</body>
+</html>
