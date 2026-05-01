@@ -3,7 +3,10 @@ const questionInput = document.getElementById('questionInput');
 const askBtn = document.getElementById('ask-btn');
 const messagesArea = document.getElementById('messages-area');
 
-function appendMessage(text, isUser = false) {
+// Initialize chat history from sessionStorage
+let chatHistory = JSON.parse(sessionStorage.getItem('myceliateChatHistory')) || [];
+
+function appendMessage(text, isUser = false, saveToHistory = true) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
     const contentDiv = document.createElement('div');
@@ -23,6 +26,16 @@ function appendMessage(text, isUser = false) {
     msgDiv.appendChild(contentDiv);
     messagesArea.appendChild(msgDiv);
     messagesArea.scrollTop = messagesArea.scrollHeight;
+
+    if (saveToHistory) {
+        chatHistory.push({ text, isUser });
+        sessionStorage.setItem('myceliateChatHistory', JSON.stringify(chatHistory));
+    }
+}
+
+// Restore chat history on load
+if (chatHistory.length > 0) {
+    chatHistory.forEach(msg => appendMessage(msg.text, msg.isUser, false));
 }
 
 function appendLoader() {
