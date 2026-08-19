@@ -10,7 +10,7 @@ Arboracle platform: Base44 (app ID 69b1abe367da1b1fe5e304cd)
 Personal agent (Bodhi): Base44 Superagent
 Local tools: Obsidian (second brain), Pixel voice recorder, Google Chat
 Productivity: Four master Google Docs (#Projects #People #Ideas #Resources)
-Automations: Google Apps Script Omni-Gardener harvests data to docs
+Automations: Google Apps Script Omni-Forester harvests data to docs
 Synthesis: NotebookLM (The Arboracle) governed by STIM Protocol
 
 Domains:
@@ -18,5 +18,5 @@ Domains:
 - myceliate.cv — resume replacement product
 - myceliate.org — open source umbrella
 - myceliate.us — BLM mineral claims platform
-- veraculum.ai — enterprise STIM platform
+- arboracle.app — enterprise STIM platform
 - openarbor.org — open source landing (GitHub Pages, planned)
