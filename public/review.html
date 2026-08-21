@@ -27,7 +27,6 @@
             <nav>
                 <ul class="nav-menu">
                     <li><a href="/" class="nav-link">Home</a></li>
-                    <li><a href="/george" class="nav-link">George</a></li>
                     <li><a href="/pricing" class="nav-link">Pricing</a></li>
                     <li><a href="/stim" class="nav-link">STIM</a></li>
                     <li><a href="/review" class="nav-link active">Attestation</a></li>
@@ -44,18 +43,27 @@
     </header>
 
     <main class="profile-page-wrapper">
-        <div class="split-layout">
+        <div class="split-layout review-split">
             
-            <!-- LEFT COLUMN: Neural Chat Assistant -->
+            <!-- LEFT COLUMN: Neural Chat Assistant (Wider Side) -->
             <div class="chat-column">
                 <div class="chat-header">
                     <div class="chat-title-group">
                         <h1>Neural Assistant <span>· Memory Sync</span></h1>
                         <p>Query verified context to assist your attestation</p>
                     </div>
-                    <a href="/george" class="review-link">
-                        <span>← Back to Profile</span>
-                    </a>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button type="button" class="btn-clear-chat" onclick="clearChat()" title="Clear conversation history">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            <span>Clear</span>
+                        </button>
+                        <a href="/george" class="review-link">
+                            <span>← Return</span>
+                        </a>
+                    </div>
                 </div>
 
                 <div class="chat-container">
@@ -85,7 +93,7 @@
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN: The Review Flow -->
+            <!-- RIGHT COLUMN: The Review Flow (420px) -->
             <div class="form-column">
                 <div class="review-scroll-area">
                     <div class="review-container">
@@ -101,8 +109,8 @@
                                 <p style="font-size:0.92rem; color:var(--text-secondary); line-height:1.6; margin-bottom:14px;">
                                     Only collaborators who know George Steward can record an immutable attestation. Solve the riddle to unlock the ledger:
                                 </p>
-                                <p style="font-family:var(--font-serif); font-size:1.15rem; color:var(--accent-gold); font-style:italic;">
-                                    "The code word is a living subterranean network that connects all organisms."
+                                <p style="font-family:var(--font-serif); font-size:1.1rem; color:var(--accent-gold); font-style:italic; line-height:1.5;">
+                                    "The code word is a living subterranean entity that connects all organisms, and an entity George aspires to be."
                                 </p>
                             </div>
                             
@@ -176,7 +184,6 @@
             </div>
             <ul class="footer-links">
                 <li><a href="/" class="footer-link">Landing</a></li>
-                <li><a href="/george" class="footer-link">George</a></li>
                 <li><a href="/pricing" class="footer-link">Pricing</a></li>
                 <li><a href="/stim" class="footer-link">STIM</a></li>
                 <li><a href="/review" class="footer-link">Attestation</a></li>

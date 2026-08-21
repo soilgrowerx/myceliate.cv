@@ -260,3 +260,24 @@ if (canvas && typeof THREE !== "undefined") {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 }
+
+function clearChat() {
+    chatHistory = [];
+    sessionStorage.removeItem("myceliateChatHistory");
+    if (messagesArea) {
+        messagesArea.innerHTML = `
+            <div class="message ai-message">
+                <div class="message-content">
+                    <p>I am the neural synthesis of George Steward verified memory, grounded in truth. Ask me specific questions about active projects, background, technical architecture, or values.</p>
+                    <div class="suggestion-chips">
+                        <button class="chip" onclick="setQuery('What is your background and experience?')">Background & Experience</button>
+                        <button class="chip" onclick="setQuery('What are you building with Mycelial Brain and MCP?')">Mycelial Brain MCP</button>
+                        <button class="chip" onclick="setQuery('Explain the STIM Protocol and autonomous agent coordination.')">STIM Protocol</button>
+                        <button class="chip" onclick="setQuery('What is the Soil Grower contract and arboriculture work?')">Soil Grower</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+window.clearChat = clearChat;

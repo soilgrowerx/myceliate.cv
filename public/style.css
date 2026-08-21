@@ -643,9 +643,13 @@ body {
     z-index: 10;
 }
 
+.split-layout.review-split {
+    grid-template-columns: 1fr 420px;
+}
+
 .split-layout {
     display: grid;
-    grid-template-columns: 420px 1fr;
+    grid-template-columns: 340px 1fr;
     background: var(--bg-surface-glass);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -1484,4 +1488,25 @@ body {
         align-items: flex-start;
         gap: 16px;
     }
+}
+
+.btn-clear-chat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-clear-chat:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    background: var(--accent-gold-muted);
 }
