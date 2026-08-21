@@ -392,12 +392,15 @@ app.get('/api/brain/telemetry', async (req, res) => {
     });
 });
 
-// Phase 3: Brain Search Proxy
+// Phase 3: Brain Search Proxy with High-Precision Full-Text Matching
 app.post('/api/brain/search', async (req, res) => {
     const { query, limit = 20 } = req.body;
     if (!query) return res.status(400).json({ error: 'Search query required.' });
 
     let results = [];
+    const q = query.trim().toLowerCase();
+
+    // 1. Try MCP brain_search first
     try {
         const payload = {
             jsonrpc: "2.0",
@@ -405,7 +408,7 @@ app.post('/api/brain/search', async (req, res) => {
             method: "tools/call",
             params: {
                 name: "brain_search",
-                arguments: { query, limit: parseInt(limit) || 20 }
+                arguments: { query: q, limit: parseInt(limit) || 20 }
             }
         };
 
@@ -419,33 +422,90 @@ app.post('/api/brain/search', async (req, res) => {
             const data = await mcpRes.json();
             if (data.result && data.result.content && data.result.content[0]?.text) {
                 try {
-                    results = JSON.parse(data.result.content[0].text);
+                    const parsed = JSON.parse(data.result.content[0].text);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        results = parsed;
+                    }
                 } catch (e) {
-                    results = [{ path: 'query-result', preview: data.result.content[0].text, score: 1 }];
+                    if (data.result.content[0].text.trim().length > 0) {
+                        results = [{ path: 'query-result', title: 'Brain Search Result', preview: data.result.content[0].text, score: 1 }];
+                    }
                 }
             }
         }
     } catch (e) {
-        console.warn("Proxy brain_search failed or offline, using fallback local search:", e.message);
+        console.warn("MCP brain_search unavailable, falling back to local full-text scan:", e.message);
     }
 
-    // Local fallback search if MCP search produced no results
+    // 2. Full-Text Search across local doc-*.md files
     if (results.length === 0) {
-        const localIndex = [
-            { path: "doc-1", title: "George Identity", tags: ["identity", "arboriculture", "systems"], domain: "Arboracle", preview: "George Steward: Full spectrum arborist, systems thinker, STIM author." },
-            { path: "doc-2", title: "George Updated", tags: ["biography", "trajectory"], domain: "Field Notes", preview: "Trajectory: Plant Killer to Forester to Soil Grower to Sanctuary Builder." },
-            { path: "doc-3", title: "Agent Ecosystem", tags: ["agents", "openclaw", "bodhi", "thea"], domain: "Forest_OS", preview: "OpenClaw, Bodhi, Thea, Sylvan, and Reata multi-agent coordination." },
-            { path: "doc-4", title: "Tech Stack", tags: ["mcp", "cloud-run", "gcs", "nodejs"], domain: "Forest_OS", preview: "GCP Cloud Run, GCS immutable buckets, Model Context Protocol." },
-            { path: "doc-6", title: "Goals & Vision", tags: ["vision", "land-restoration", "stim"], domain: "STIM", preview: "100-year horizon thinking, biological equity, land regeneration." },
-            { path: "doc-146", title: "STIM Provenance Layer", tags: ["stim", "axioms", "physics"], domain: "STIM", preview: "Layer 0 AI alignment axioms grounded in thermodynamics." }
-        ];
-        const q = query.toLowerCase();
-        results = localIndex.filter(d => 
-            d.title.toLowerCase().includes(q) || 
-            d.path.toLowerCase().includes(q) || 
-            d.tags.some(t => t.toLowerCase().includes(q)) ||
-            d.preview.toLowerCase().includes(q)
-        ).map(d => ({ ...d, score: 3 }));
+        try {
+            const files = fs.readdirSync(__dirname).filter(f => f.startsWith('doc-') && f.endsWith('.md'));
+            const localHits = [];
+
+            for (const file of files) {
+                const docPath = file.replace(/\.md$/, '');
+                const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
+                const lowerContent = content.toLowerCase();
+
+                // Extract title from first # heading or filename
+                const firstHeading = content.match(/^#\s+(.+)$/m);
+                const title = firstHeading ? firstHeading[1] : docPath;
+
+                // Extract tags if present
+                const tagsMatch = content.match(/Tags:\s*(.+)$/m) || content.match(/tags:\s*\[(.*?)\]/);
+                const tags = tagsMatch ? tagsMatch[1].split(',').map(t => t.trim().replace(/['"]/g, '')) : ['substrate'];
+
+                // Determine domain
+                let domain = 'Field Notes';
+                if (lowerContent.includes('arboracle') || lowerContent.includes('soil grower') || lowerContent.includes('bluffview')) domain = 'Arboracle';
+                else if (lowerContent.includes('stim') || lowerContent.includes('axiom') || lowerContent.includes('thermodynamic')) domain = 'STIM';
+                else if (lowerContent.includes('openclaw') || lowerContent.includes('bodhi') || lowerContent.includes('thea') || lowerContent.includes('mcp')) domain = 'Forest_OS';
+                else if (lowerContent.includes('review') || lowerContent.includes('attestation') || lowerContent.includes('fungi')) domain = 'Reputation';
+
+                let score = 0;
+                let preview = '';
+
+                // Title match: Highest priority (Score 10)
+                if (title.toLowerCase().includes(q) || docPath.toLowerCase().includes(q)) {
+                    score += 10;
+                }
+
+                // Tags match: High priority (Score 5)
+                if (tags.some(t => t.toLowerCase().includes(q))) {
+                    score += 5;
+                }
+
+                // Body search: Extract surrounding context snippet
+                const matchIndex = lowerContent.indexOf(q);
+                if (matchIndex !== -1) {
+                    score += 3;
+                    const start = Math.max(0, matchIndex - 60);
+                    const end = Math.min(content.length, matchIndex + q.length + 90);
+                    preview = (start > 0 ? '...' : '') + content.slice(start, end).replace(/\n+/g, ' ').trim() + (end < content.length ? '...' : '');
+                } else {
+                    // Default preview from beginning of file
+                    preview = content.slice(0, 140).replace(/^#+.*?\n/g, '').replace(/\n+/g, ' ').trim() + '...';
+                }
+
+                if (score > 0) {
+                    localHits.push({
+                        path: docPath,
+                        title,
+                        domain,
+                        tags,
+                        preview,
+                        score
+                    });
+                }
+            }
+
+            // Sort by match score descending
+            localHits.sort((a, b) => b.score - a.score);
+            results = localHits.slice(0, parseInt(limit) || 20);
+        } catch (scanErr) {
+            console.error("Local full-text scan error:", scanErr);
+        }
     }
 
     res.json({ results });

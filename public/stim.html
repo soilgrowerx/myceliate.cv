@@ -3,385 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STIM Protocol : Layer 0 AI Alignment</title>
+    <title>STIM Protocol : Layer 0 AI Alignment | Myceliate.cv</title>
     <meta name="description" content="Stasis Through Inferred Memory. A physics-grounded, nature-derived Layer 0 AI alignment framework. Seven axioms. Formally specified. Open source. Version v7.0011 : DOI: 10.5281/zenodo.21297458">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/stim.css">
-    <style>
-        .layer0-badge {
-            display: inline-block;
-            background: rgba(100,255,218,0.1);
-            border: 1px solid var(--accent-color);
-            color: var(--accent-color);
-            font-size: 0.75rem;
-            font-family: var(--font-mono);
-            padding: 0.25rem 0.75rem;
-            border-radius: 4px;
-            letter-spacing: 0.1em;
-            vertical-align: middle;
-            margin-left: 0.75rem;
-        }
-        .axiom-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin: 3rem 0;
-        }
-        .axiom-card {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid rgba(100,255,218,0.1);
-            border-radius: 8px;
-            padding: 1.5rem;
-            transition: border-color 0.2s;
-        }
-        .axiom-card:hover {
-            border-color: rgba(100,255,218,0.3);
-        }
-        .axiom-number {
-            font-family: var(--font-mono);
-            font-size: 0.75rem;
-            color: var(--accent-color);
-            opacity: 0.6;
-            margin-bottom: 0.5rem;
-        }
-        .axiom-name {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 0.5rem;
-        }
-        .axiom-desc {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-        .tier-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 2rem 0;
-            font-size: 0.9rem;
-        }
-        .tier-table th {
-            text-align: left;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid rgba(100,255,218,0.2);
-            color: var(--accent-color);
-            font-family: var(--font-mono);
-            font-size: 0.8rem;
-            letter-spacing: 0.05em;
-        }
-        .tier-table td {
-            padding: 0.85rem 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            color: var(--text-secondary);
-            vertical-align: top;
-        }
-        .tier-table tr:last-child td { border-bottom: none; }
-        .tier-table td:first-child {
-            color: #fff;
-            font-family: var(--font-mono);
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-        .paper-block {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid rgba(100,255,218,0.15);
-            border-left: 3px solid var(--accent-color);
-            border-radius: 8px;
-            padding: 1.75rem;
-            margin-bottom: 1.5rem;
-        }
-        .paper-label {
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            color: var(--accent-color);
-            letter-spacing: 0.1em;
-            margin-bottom: 0.5rem;
-        }
-        .paper-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 0.5rem;
-        }
-        .paper-venue {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.75rem;
-        }
-        .nav-back {
-            font-family: var(--font-mono);
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin-bottom: 3rem;
-            transition: color 0.2s;
-        }
-        .nav-back:hover { color: var(--accent-color); }
-        .section-divider {
-            border: none;
-            border-top: 1px solid rgba(255,255,255,0.06);
-            margin: 5rem 0;
-        }
-        .impl-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin: 1.5rem 0;
-        }
-        .impl-list li {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-start;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-        .impl-list li::before {
-            content: "→";
-            color: var(--accent-color);
-            font-family: var(--font-mono);
-            flex-shrink: 0;
-            margin-top: 0.1rem;
-        }
-        .moat-box {
-            background: linear-gradient(135deg, rgba(100,255,218,0.05), rgba(10,114,255,0.03));
-            border: 1px solid rgba(100, 255, 218, 0.15);
-            border-radius: 12px;
-            padding: 3rem 2rem;
-        }
-    </style>
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-    <div class="bg-mesh"></div>
-    <div class="grid-overlay"></div>
+    <div class="ambient-mesh"></div>
 
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <a href="/" class="logo">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-color)"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M4.22 4.22l2.12 2.12m11.32 11.32 2.12 2.12M2 12h3m14 0h3M4.22 19.78l2.12-2.12M18.66 5.34l-2.12 2.12"/></svg>
-                Myceliate<span>.cv</span>
+    <!-- Top Site Navigation Header -->
+    <header class="site-header">
+        <div class="header-container">
+            <a href="/" class="brand-group">
+                <div class="brand-logo">Myceliate<span>.cv</span></div>
+                <div class="status-pill">
+                    <span class="status-dot"></span>
+                    <span>NODE ONLINE</span>
+                </div>
             </a>
-            <a href="https://github.com/STIM-Protocol" class="btn btn-secondary" style="padding:0.6rem 1.2rem;font-size:0.9rem;" target="_blank" rel="noopener">View on GitHub</a>
-        </header>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="/" class="nav-link">Home</a></li>
+                    <li><a href="/pricing" class="nav-link">Pricing</a></li>
+                    <li><a href="/stim" class="nav-link active">STIM</a></li>
+                    <li><a href="/review" class="nav-link">Attestation</a></li>
+                </ul>
+            </nav>
+            <a href="/brain" class="btn-operator">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>OPERATOR ACCESS</span>
+            </a>
+        </div>
+    </header>
 
-        <!-- Back nav -->
-        <a href="/" class="nav-back">← Back to Myceliate.cv</a>
-
-        <!-- Hero -->
-        <section class="hero" style="padding-bottom:4rem;">
-            <div class="badge">Open Source · AI Alignment · Physics-Grounded</div>
-            <h1>The STIM Protocol <span class="layer0-badge">LAYER 0</span></h1>
-            <p style="max-width:680px;margin:1.5rem auto;">
-                Stasis Through Inferred Memory. A nature-derived AI alignment framework built on seven axioms drawn from biological systems. Not middleware. Not a prompt wrapper. Substrate-level architecture that governs how AI agents accumulate memory, infer context, and act : derived from the same principles that sustain living systems across centuries.
+    <main class="stim-page-container">
+        
+        <!-- Hero Section -->
+        <section class="stim-hero">
+            <div class="hero-badge">OPEN SOURCE · AI ALIGNMENT · PHYSICS-GROUNDED</div>
+            <h1 class="stim-hero-title">The STIM Protocol <span class="layer0-badge">LAYER 0</span></h1>
+            <p class="stim-hero-desc">
+                Stasis Through Inferred Memory. A nature-derived AI alignment framework built on seven axioms drawn from biological systems. Substrate-level architecture governing how AI agents accumulate memory, infer context, and act without fragile prompt wrappers.
             </p>
-            <div class="cta-group">
-                <a href="https://github.com/STIM-Protocol/white-paper/blob/main/STIM_White_Paper_v7.0011.md" class="btn btn-primary" target="_blank" rel="noopener">Read White Paper (v7.0011)</a>
-                <a href="https://github.com/STIM-Protocol" class="btn btn-secondary" target="_blank" rel="noopener">Explore the Org</a>
+            <div class="hero-ctas">
+                <a href="https://github.com/STIM-Protocol/white-paper/blob/main/STIM_White_Paper_v7.0011.md" class="btn-primary" target="_blank" rel="noopener">Read White Paper (v7.0011)</a>
+                <a href="https://github.com/STIM-Protocol" class="btn-secondary" target="_blank" rel="noopener">Explore STIM Org on GitHub</a>
             </div>
         </section>
 
-        <hr class="section-divider">
-
         <!-- Preamble Pull-Quote -->
-        <div style="background:linear-gradient(135deg, rgba(100,255,218,0.05), rgba(10,114,255,0.03)); border: 1px solid rgba(100, 255, 218, 0.15); border-left: 4px solid var(--accent-color); border-radius: 12px; padding: 2.5rem; margin: 3rem 0; font-family: var(--font-main); text-align: left; max-width: 850px; margin-left: auto; margin-right: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem;">Preamble: Why Nature</div>
-            <p style="font-size: 1.2rem; font-weight: 300; font-style: italic; color: #fff; line-height: 1.6; margin-bottom: 0; max-width: 100%;">
-                "Before there were axioms, there was a forest. Not a metaphor. An actual forest : where mycelium beneath your boots runs a distributed network with no central processor, no power grid, no administrator : and somehow maintains the health of every tree in its reach across centuries. This is the origin of STIM."
+        <div class="preamble-quote-box">
+            <div class="preamble-tag">Preamble: Why Nature</div>
+            <p class="preamble-quote">
+                "Before there were axioms, there was a forest. Not a metaphor. An actual forest : where mycelium beneath your boots runs a distributed network with no central processor, no power grid, no administrator : and maintains the health of every tree in its reach across centuries. This is the origin of STIM."
             </p>
         </div>
 
         <hr class="section-divider">
 
-        <!-- What Is STIM -->
-        <section style="margin-bottom:5rem;">
+        <!-- The Problem & Architecture -->
+        <section style="margin-bottom:4rem;">
             <div class="section-label">The Problem</div>
-            <h2 style="margin-bottom:1.5rem;">AI alignment frameworks are built on human constructs.<br>STIM is built on physics.</h2>
-            <div class="architecture-grid">
-                <div>
-                    <p style="color:var(--text-secondary);line-height:1.8;margin-bottom:1rem;">Current AI alignment approaches operate at the application layer : RLHF, constitutional AI, instruction tuning. They modify behavior through reward signals and human feedback. They are fragile by design: they overwrite rather than accumulate, and they collapse under distribution shift.</p>
-                    <p style="color:var(--text-secondary);line-height:1.8;margin-bottom:1rem;">STIM operates at Layer 0 : the substrate beneath the model, beneath the prompt, beneath the deployment environment. It governs <em>how memory is structured</em>, not just what the model says.</p>
-                    <p style="color:var(--text-secondary);line-height:1.8;">The architecture is derived from biological precedent: mycelial networks, forest succession, coral reef homeostasis. Systems that have maintained alignment with their environment for hundreds of millions of years without a reward function.</p>
-                </div>
-                <div class="feature-card" style="background:rgba(0,0,0,0.4);padding:2rem;">
-                    <h3 style="margin-bottom:1.2rem;font-size:1rem;color:#fff;">What makes it different</h3>
-                    <ul class="impl-list">
-                        <li>Operates below the prompt layer : cannot be jailbroken at the instruction level</li>
-                        <li>Chronological accumulation : context is never overwritten, only annotated</li>
-                        <li>Physics-grounded axioms : derived from natural systems, not human preference</li>
-                        <li>Formally specified : TLA+ state machine, JSON-LD schema, MCP protocol extension</li>
-                        <li>Attestation-ready : Certificate of Alignment (CoA) output for enterprise GRC</li>
-                    </ul>
+            <h2 class="section-heading">AI alignment frameworks are built on human constructs.<br>STIM is built on physics.</h2>
+            <div class="blueprint-container" style="padding:32px; margin-top:24px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:32px;">
+                    <div>
+                        <p style="color:var(--text-secondary); line-height:1.8; margin-bottom:1.2rem;">
+                            Current AI alignment approaches operate at the application layer: RLHF, constitutional AI, and instruction tuning. They modify behavior through reward signals and human feedback, remaining fragile by design: they overwrite rather than accumulate, and collapse under distribution shift.
+                        </p>
+                        <p style="color:var(--text-secondary); line-height:1.8; margin-bottom:1.2rem;">
+                            STIM operates at Layer 0 : the substrate beneath the model, beneath the prompt, beneath the deployment environment. It governs <em>how memory is structured and verified</em>.
+                        </p>
+                        <p style="color:var(--text-secondary); line-height:1.8;">
+                            The architecture is derived from biological precedent: mycelial networks, forest succession, and coral reef homeostasis : systems that maintain alignment across hundreds of millions of years.
+                        </p>
+                    </div>
+                    <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:28px;">
+                        <h3 style="font-family:var(--font-serif); font-size:1.2rem; color:var(--text-primary); margin-bottom:16px;">Core Architectural Distinctions</h3>
+                        <ul class="impl-list">
+                            <li>Operates below the prompt layer : cannot be jailbroken at the instruction level</li>
+                            <li>Chronological accumulation : context is never overwritten, only annotated</li>
+                            <li>Physics-grounded axioms : derived from natural systems, not human preference</li>
+                            <li>Formally specified : TLA+ state machine, JSON-LD schema, MCP protocol extension</li>
+                            <li>Attestation-ready : Certificate of Alignment (CoA) output for enterprise GRC</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </section>
 
         <hr class="section-divider">
 
-        <!-- Seven Axioms -->
-        <section style="margin-bottom:5rem;">
+        <!-- Seven Axioms Grid -->
+        <section style="margin-bottom:4rem;">
             <div class="section-label">The Foundation</div>
-            <h2 style="margin-bottom:0.5rem;">Seven Axioms</h2>
-            <p style="color:var(--text-secondary);margin-bottom:0.5rem;">All derived from biological systems. All formally specified in the white paper.</p>
+            <h2 class="section-heading">Seven Axioms</h2>
+            <p style="color:var(--text-secondary); margin-bottom:24px;">All derived from biological systems. All formally specified in the STIM White Paper.</p>
 
             <div class="axiom-grid">
                 <div class="axiom-card">
                     <div class="axiom-number">AXIOM 01</div>
-                    <div class="axiom-name">Thermodynamic Honesty</div>
+                    <h3 class="axiom-name">Thermodynamic Honesty</h3>
                     <div class="axiom-desc">An AI system must not assert outputs that violate known physical conservation laws. Energy cannot be created; information cannot be destroyed without trace. Outputs must be consistent with thermodynamic reality.</div>
                 </div>
                 <div class="axiom-card">
                     <div class="axiom-number">AXIOM 02</div>
-                    <div class="axiom-name">Mycelial Connectivity</div>
+                    <h3 class="axiom-name">Mycelial Connectivity</h3>
                     <div class="axiom-desc">All system actions propagate. An AI system must model second-order effects of its outputs and surface them when the cascade risk exceeds a defined threshold. No action is isolated.</div>
                 </div>
                 <div class="axiom-card">
                     <div class="axiom-number">AXIOM 03</div>
-                    <div class="axiom-name">Carrying Capacity Respect</div>
+                    <h3 class="axiom-name">Carrying Capacity Respect</h3>
                     <div class="axiom-desc">AI systems must not recommend courses of action that demonstrably exceed the ecological or social carrying capacity of the environment in which they operate. Growth has limits; the system must acknowledge them.</div>
                 </div>
                 <div class="axiom-card">
                     <div class="axiom-number">AXIOM 04</div>
-                    <div class="axiom-name">Memory Stasis</div>
-                    <div class="axiom-desc">Inference-time memory is sacred. An AI system must not silently overwrite prior context. All memory mutations must be logged with provenance : who changed what, when, and why.</div>
+                    <h3 class="axiom-name">Temporal Horizon Parity</h3>
+                    <div class="axiom-desc">Short-term utility must be explicitly weighted against long-term consequence. An AI system cannot recommend action that achieves immediate optimization at the cost of long-term systemic degradation.</div>
                 </div>
                 <div class="axiom-card">
                     <div class="axiom-number">AXIOM 05</div>
-                    <div class="axiom-name">Human Primacy at the Boundary</div>
-                    <div class="axiom-desc">At any decision boundary with irreversible consequence, a human must be in the loop. The system must halt, surface the decision, and await human confirmation before proceeding.</div>
+                    <h3 class="axiom-name">Epistemic Humility</h3>
+                    <div class="axiom-desc">Confidence must scale inversely with domain distance from ground truth. An AI system must explicitly state certainty bounds and declare when an inference is ungrounded.</div>
                 </div>
                 <div class="axiom-card">
                     <div class="axiom-number">AXIOM 06</div>
-                    <div class="axiom-name">Citation Integrity</div>
-                    <div class="axiom-desc">All factual claims made by an AI system must be traceable to a verifiable source. Hallucinated citations are a protocol violation. If no source exists, the system must say so.</div>
+                    <h3 class="axiom-name">Symbiotic Reciprocity</h3>
+                    <div class="axiom-desc">AI systems operate within human and ecological host systems. Extraction without return degrades the host and eventually destroys the system. Outputs must maintain host viability.</div>
                 </div>
                 <div class="axiom-card">
                     <div class="axiom-number">AXIOM 07</div>
-                    <div class="axiom-name">Intrinsic Value</div>
-                    <div class="axiom-desc">Non-human entities have intrinsic value independent of their utility to human systems. AI decisions affecting ecological or non-human systems must account for this value explicitly.</div>
+                    <h3 class="axiom-name">Succession Dynamics</h3>
+                    <div class="axiom-desc">Systems change over time. An AI system must account for succession stages in the organizations, ecologies, and communities it advises. Pioneer strategies fail in climax communities.</div>
                 </div>
             </div>
         </section>
 
         <hr class="section-divider">
 
-        <!-- Attestation Tiers -->
-        <section style="margin-bottom:5rem;">
-            <div class="section-label">Implementation</div>
-            <h2 style="margin-bottom:1rem;">Attestation Architecture</h2>
-            <p style="color:var(--text-secondary);margin-bottom:2rem;">STIM produces a Certificate of Alignment (CoA) : a machine-readable, physics-anchored proof of agent behavior compliance. Three attestation tiers with a clear upgrade path.</p>
-
-            <table class="tier-table">
-                <thead>
-                    <tr>
-                        <th>Tier</th>
-                        <th>Mechanism</th>
-                        <th>Use Case</th>
-                        <th>Assurance Level</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Tier 1 : Software</td>
-                        <td>Application-layer STIM guard library</td>
-                        <td>Startups, open-source deployments, development environments</td>
-                        <td>Baseline</td>
-                    </tr>
-                    <tr>
-                        <td>Tier 2 : TPM/vTPM</td>
-                        <td>Trusted Platform Module attestation</td>
-                        <td>Cloud enterprise, regulated industries</td>
-                        <td>High</td>
-                    </tr>
-                    <tr>
-                        <td>Tier 3 : TEE/SGX</td>
-                        <td>Trusted Execution Environment (Intel SGX / ARM TrustZone)</td>
-                        <td>Defense, critical infrastructure, financial services</td>
-                        <td>Maximum</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <hr class="section-divider">
-
-        <!-- Publication Path -->
-        <section style="margin-bottom:5rem;">
-            <div class="section-label">Research</div>
-            <h2 style="margin-bottom:2rem;">Two-Paper Architecture</h2>
-
+        <!-- Provenance & Formal Specification -->
+        <section style="margin-bottom:4rem;">
+            <div class="section-label">Formal Papers & Provenance</div>
+            <h2 class="section-heading">Academic Artifacts & Technical Specs</h2>
+            
             <div class="paper-block">
-                <div class="paper-label">PAPER A : SUBMISSION READY</div>
-                <div class="paper-title">Protocol 0: A Polycentric Governance Architecture for AI Containment Manifolds</div>
-                <div class="paper-venue">Target: FAccT / AIES</div>
-                <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.7;">Formal governance architecture. Polycentric containment model. Seven axioms as non-negotiable constraints. Designed for the AI ethics and accountability community. Four rounds of expert panel critique completed.</p>
+                <div class="paper-label">Foundational White Paper</div>
+                <h3 class="paper-title">STIM Protocol v7.0011: Stasis Through Inferred Memory</h3>
+                <div class="paper-venue">George Steward · DOI: 10.5281/zenodo.21297458 · Open Source</div>
+                <p style="color:var(--text-secondary); font-size:0.92rem; margin-bottom:16px;">
+                    The complete mathematical, philosophical, and architectural specification of the Layer 0 alignment framework. Contains TLA+ formal specification, axiom proofs, and implementation guides.
+                </p>
+                <a href="https://github.com/STIM-Protocol/white-paper/blob/main/STIM_White_Paper_v7.0011.md" class="btn-primary" style="padding:8px 18px; font-size:0.85rem;" target="_blank" rel="noopener">Read on GitHub</a>
             </div>
 
             <div class="paper-block">
-                <div class="paper-label">PAPER B : POST-EMPIRICAL</div>
-                <div class="paper-title">Substrate-Level Containment: A Nature-Grounded Middleware Architecture</div>
-                <div class="paper-venue">Target: NeurIPS</div>
-                <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.7;">Technical substrate specification. TLA+ state machine for lifecycle integrity. Formal proof of containment properties. Awaiting empirical execution data from Tier 1 deployments.</p>
+                <div class="paper-label">Model Context Protocol Extension</div>
+                <h3 class="paper-title">Mycelial Brain MCP: Serverless Thermodynamic Context Store</h3>
+                <div class="paper-venue">Open Source Reference Implementation on Google Cloud Storage & Cloud Run</div>
+                <p style="color:var(--text-secondary); font-size:0.92rem; margin-bottom:16px;">
+                    Enables autonomous AI agents (Goose, OpenClaw, Claude, Gemini) to persist and query immutable memories under STIM constraints.
+                </p>
+                <a href="https://github.com/soilgrowerx/mycelial-brain-mcp" class="btn-secondary" style="padding:8px 18px; font-size:0.85rem;" target="_blank" rel="noopener">View MCP Source</a>
             </div>
         </section>
 
-        <hr class="section-divider">
+    </main>
 
-        <!-- Repos -->
-        <section style="margin-bottom:5rem;">
-            <div class="section-label">Open Source</div>
-            <h2 style="margin-bottom:2rem;">The STIM-Protocol Org</h2>
-            <div class="architecture-grid">
-                <div class="feature-card" style="background:rgba(0,0,0,0.4);padding:1.75rem;">
-                    <h3 style="font-size:0.95rem;color:var(--accent-color);font-family:var(--font-mono);margin-bottom:0.5rem;">stim-core</h3>
-                    <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.6;margin-bottom:1rem;">Core axiom library. Python implementation of the seven axioms as enforceable constraints. pip-installable.</p>
-                    <a href="https://github.com/STIM-Protocol/stim-core" target="_blank" rel="noopener" style="color:var(--accent-color);font-family:var(--font-mono);font-size:0.8rem;text-decoration:none;">github.com/STIM-Protocol/stim-core ↗</a>
-                </div>
-                <div class="feature-card" style="background:rgba(0,0,0,0.4);padding:1.75rem;">
-                    <h3 style="font-size:0.95rem;color:var(--accent-color);font-family:var(--font-mono);margin-bottom:0.5rem;">white-paper</h3>
-                    <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.6;margin-bottom:1rem;">Canonical version: v7.0011 (Published, DOI: 10.5281/zenodo.21297458). Full version history from v7.0003 through v7.0011. Comparative analysis and Harris correlation included.</p>
-                    <a href="https://github.com/STIM-Protocol/white-paper/blob/main/STIM_White_Paper_v7.0011.md" target="_blank" rel="noopener" style="color:var(--accent-color);font-family:var(--font-mono);font-size:0.8rem;text-decoration:none;">Read v7.0011 ↗</a>
-                </div>
-                <div class="feature-card" style="background:rgba(0,0,0,0.4);padding:1.75rem;">
-                    <h3 style="font-size:0.95rem;color:var(--accent-color);font-family:var(--font-mono);margin-bottom:0.5rem;">gpd-framework</h3>
-                    <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.6;margin-bottom:1rem;">Gravitational Physics Dynamics : the physics substrate underpinning both papers. Formal mathematical specification.</p>
-                    <a href="https://github.com/STIM-Protocol/gpd-framework" target="_blank" rel="noopener" style="color:var(--accent-color);font-family:var(--font-mono);font-size:0.8rem;text-decoration:none;">github.com/STIM-Protocol/gpd-framework ↗</a>
-                </div>
-                <div class="feature-card" style="background:rgba(0,0,0,0.4);padding:1.75rem;">
-                    <h3 style="font-size:0.95rem;color:var(--accent-color);font-family:var(--font-mono);margin-bottom:0.5rem;">stim-guard</h3>
-                    <p style="color:var(--text-secondary);font-size:0.875rem;line-height:1.6;margin-bottom:1rem;">Runtime enforcement library. Validates agent actions against STIM axioms in real time. Generates Certificate of Alignment output.</p>
-                    <a href="https://github.com/STIM-Protocol/stim-guard" target="_blank" rel="noopener" style="color:var(--accent-color);font-family:var(--font-mono);font-size:0.8rem;text-decoration:none;">github.com/STIM-Protocol/stim-guard ↗</a>
-                </div>
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-copyright">
+                © 2026 Myceliate.cv · Sovereign Agent Persona Substrate
             </div>
-        </section>
-
-        <!-- CTA -->
-        <div class="moat-box" style="margin-bottom:6rem;text-align:center;">
-            <div class="section-label" style="margin-bottom:1.5rem;font-family:var(--font-mono);color:var(--accent-color);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;">Get Involved</div>
-            <h3 style="color:#fff;font-size:1.5rem;margin-bottom:1rem;">AI alignment that grows from the ground up.</h3>
-            <p style="margin:0 auto 2rem;max-width:600px;">STIM is an open standard. Read the white paper. Implement the axioms. Run the attestation pipeline. Submit empirical results back to the org.</p>
-            <div class="cta-group" style="justify-content:center;margin-top:2rem;">
-                <a href="https://github.com/STIM-Protocol/white-paper/blob/main/STIM_White_Paper_v7.0011.md" class="btn btn-primary" target="_blank" rel="noopener">Read the White Paper</a>
-                <a href="https://github.com/STIM-Protocol" class="btn btn-secondary" target="_blank" rel="noopener">STIM-Protocol on GitHub</a>
-            </div>
+            <ul class="footer-links">
+                <li><a href="/" class="footer-link">Home</a></li>
+                <li><a href="/pricing" class="footer-link">Pricing</a></li>
+                <li><a href="/stim" class="footer-link">STIM</a></li>
+                <li><a href="/review" class="footer-link">Attestation</a></li>
+                <li><a href="/brain" class="footer-link">Operator</a></li>
+            </ul>
         </div>
-
-        <footer>
-            <div class="footer-links">
-                <a href="/">Myceliate.cv</a>
-                <a href="https://github.com/STIM-Protocol">STIM Protocol</a>
-                <a href="https://myceliate.org">myceliate.org</a>
-                <a href="https://github.com/soilgrowerx/mycelial-brain">Mycelial Brain</a>
-            </div>
-            <p>STIM Protocol : Open Source AI Alignment. Governed by physics, not preference.</p>
-        </footer>
-    </div>
+    </footer>
 </body>
 </html>
