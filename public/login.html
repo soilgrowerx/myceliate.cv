@@ -68,7 +68,7 @@
                     <div class="form-group">
                         <label class="form-label" for="input-access-key">OPERATOR ACCESS KEY</label>
                         <input type="password" id="input-access-key" class="form-input" placeholder="Enter operator key..." required autofocus autocomplete="current-password">
-                        <p class="form-help">Default session key or private operator key.</p>
+                        <p class="form-help">Default session key or private node operator key.</p>
                     </div>
 
                     <div id="auth-error-banner" class="modal-error-banner"></div>
@@ -84,8 +84,8 @@
                 <form id="form-operator-reset" onsubmit="handleReset(event)">
                     <div class="form-group">
                         <label class="form-label" for="input-reset-email">AUTHORIZED OPERATOR EMAIL</label>
-                        <input type="email" id="input-reset-email" class="form-input" placeholder="sabione@gmail.com" required autocomplete="email">
-                        <p class="form-help">Authorized recovery address (e.g. sabione@gmail.com or george@soilgrower.com).</p>
+                        <input type="email" id="input-reset-email" class="form-input" placeholder="operator@domain.com" required autocomplete="email">
+                        <p class="form-help">Enter the authorized recovery email associated with this node.</p>
                     </div>
 
                     <div id="reset-error-banner" class="modal-error-banner"></div>
@@ -93,10 +93,6 @@
 
                     <button type="submit" id="btn-reset-submit" class="btn-primary btn-full" style="margin-bottom:12px;">
                         <span>Issue New Operator Key</span>
-                    </button>
-
-                    <button type="button" id="btn-emergency-recovery" class="btn-secondary btn-full" onclick="executeEmergencyRecovery()">
-                        <span>Emergency Recovery (Primary Operator)</span>
                     </button>
                 </form>
             </div>
@@ -118,7 +114,7 @@
                 © 2026 Myceliate.cv · Sovereign Agent Persona Substrate
             </div>
             <ul class="footer-links">
-                <li><a href="/" class="footer-link">Landing</a></li>
+                <li><a href="/" class="footer-link">Home</a></li>
                 <li><a href="/pricing" class="footer-link">Pricing</a></li>
                 <li><a href="/stim" class="footer-link">STIM</a></li>
                 <li><a href="/review" class="footer-link">Attestation</a></li>
@@ -181,7 +177,7 @@
             }
         }
 
-        async function executeReset(email, emergency) {
+        async function executeReset(email) {
             const btn = document.getElementById('btn-reset-submit');
             const errBanner = document.getElementById('reset-error-banner');
             const succBanner = document.getElementById('reset-success-banner');
@@ -194,7 +190,7 @@
                 const response = await fetch('/api/auth/reset', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, emergency_recovery: emergency })
+                    body: JSON.stringify({ email })
                 });
 
                 const data = await response.json();
@@ -207,7 +203,7 @@
                         window.location.href = data.redirect || '/brain';
                     }, 2000);
                 } else {
-                    errBanner.textContent = data.error || 'Recovery failed.';
+                    errBanner.textContent = data.error || 'Email verification failed: Address not registered as an authorized operator.';
                     errBanner.style.display = 'block';
                 }
             } catch (err) {
@@ -221,11 +217,7 @@
         function handleReset(e) {
             e.preventDefault();
             const email = document.getElementById('input-reset-email').value;
-            executeReset(email, false);
-        }
-
-        function executeEmergencyRecovery() {
-            executeReset('sabione@gmail.com', true);
+            executeReset(email);
         }
     </script>
 </body>

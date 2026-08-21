@@ -295,9 +295,9 @@
                 <form id="form-operator-reset">
                     <div class="form-group">
                         <label for="input-reset-email" class="form-label">VERIFIED OPERATOR EMAIL</label>
-                        <input type="email" id="input-reset-email" class="form-input" placeholder="sabione@gmail.com" autocomplete="email" required>
+                        <input type="email" id="input-reset-email" class="form-input" placeholder="operator@domain.com" autocomplete="email" required>
                         <p class="form-help">
-                            Enter an authorized operator email (e.g. sabione@gmail.com or george@arboracle.app) to generate fresh access credentials and establish an active session.
+                            Enter an authorized operator email (e.g. operator@yourdomain.com) to generate fresh access credentials and establish an active session.
                         </p>
                     </div>
 
@@ -598,7 +598,7 @@
 
     if (btnEmergencyRecovery) {
         btnEmergencyRecovery.addEventListener('click', () => {
-            executeKeyReset('sabione@gmail.com', true);
+            executeKeyReset(document.getElementById('input-reset-email').value, false);
         });
     }
     </script>

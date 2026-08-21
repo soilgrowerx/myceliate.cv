@@ -43,9 +43,9 @@
 
     <main class="pricing-page-wrapper">
         <div class="pricing-header">
-            <div class="hero-badge">INFRASTRUCTURE TIERS</div>
-            <h1 class="pricing-title">Sovereign Brain Node Sponsorship</h1>
-            <p class="pricing-subtitle">Ground your autonomous AI agents with immutable context storage, thermodynamic attestation, and Model Context Protocol routing.</p>
+            <div class="hero-badge">OPEN PROTOCOL & HOSTED SUBSTRATE</div>
+            <h1 class="pricing-title">Accessible Context Infrastructure</h1>
+            <p class="pricing-subtitle">Ground autonomous AI agents and personal digital personas with decentralized memory, thermodynamic attestation, and Model Context Protocol routing.</p>
         </div>
 
         <div class="billing-toggle-container">
@@ -54,29 +54,59 @@
                 <div class="toggle-slider"></div>
             </div>
             <span class="billing-label" id="label-annual" onclick="setBillingPeriod('annual')">
-                Annual Billing <span class="discount-badge">SAVE 20%</span>
+                Annual Billing <span class="discount-badge">SAVE 25%</span>
             </span>
         </div>
 
-        <div class="pricing-grid">
+        <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
             
-            <!-- Tier 1: Personal Node -->
+            <!-- Tier 1: Open Source Substrate ($0) -->
             <div class="pricing-card">
-                <h2 class="pricing-tier-name">Personal Node</h2>
-                <p class="pricing-tier-desc">Individual memory indexing and verifiable public persona for sovereign builders.</p>
+                <h2 class="pricing-tier-name">Open Source</h2>
+                <p class="pricing-tier-desc">Self-hosted Model Context Protocol server for individual developers and local agents.</p>
                 <div class="pricing-price-box">
                     <span class="price-currency">$</span>
-                    <span class="price-amount" id="price-personal">9</span>
-                    <span class="price-period" id="period-personal">/ month</span>
+                    <span class="price-amount">0</span>
+                    <span class="price-period">/ forever</span>
                 </div>
                 <ul class="feature-list">
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Custom persona route (myceliate.cv/yourname)</span>
+                        <span>Full open-source MCP server connector</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>250 MB Sovereign GCS Brain Store</span>
+                        <span>Local GCS or file-based memory store</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>STIM Protocol specification access</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>CLI tools & GitHub repository updates</span>
+                    </li>
+                </ul>
+                <a href="https://github.com/soilgrowerx/mycelial-brain-mcp" target="_blank" rel="noopener" class="btn-secondary btn-full">View GitHub MCP</a>
+            </div>
+
+            <!-- Tier 2: Sovereign Persona ($4/mo) -->
+            <div class="pricing-card">
+                <h2 class="pricing-tier-name">Sovereign Persona</h2>
+                <p class="pricing-tier-desc">Hosted persona profile and persistent memory index for builders and operators.</p>
+                <div class="pricing-price-box">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount" id="price-persona">4</span>
+                    <span class="price-period" id="period-persona">/ month</span>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Custom persona URL (myceliate.cv/yourname)</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>500 MB Sovereign GCS Brain Bucket</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
@@ -84,34 +114,38 @@
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Model Context Protocol (MCP) tool support</span>
+                        <span>Verifiable signal fidelity ledger</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Verifiable outcome ledger integration</span>
+                        <span>Peer attestation gate & review capture</span>
                     </li>
                 </ul>
-                <button class="btn-secondary btn-full" onclick="checkout('personal')">Deploy Personal Node</button>
+                <button class="btn-secondary btn-full" onclick="checkout('persona')">Deploy Persona Node</button>
             </div>
 
-            <!-- Tier 2: Collective Swarm (Featured) -->
+            <!-- Tier 3: Swarm Collective ($14/mo - Featured) -->
             <div class="pricing-card featured">
                 <div class="featured-pill">RECOMMENDED</div>
-                <h2 class="pricing-tier-name">Collective Swarm</h2>
-                <p class="pricing-tier-desc">Multi-agent context substrate for teams, research labs, and agentic workflows.</p>
+                <h2 class="pricing-tier-name">Swarm Collective</h2>
+                <p class="pricing-tier-desc">Multi-agent context substrate for agent swarms, research labs, and teams.</p>
                 <div class="pricing-price-box">
                     <span class="price-currency" style="color:var(--accent-gold);">$</span>
-                    <span class="price-amount" id="price-swarm" style="color:var(--accent-gold);">29</span>
+                    <span class="price-amount" id="price-swarm" style="color:var(--accent-gold);">14</span>
                     <span class="price-period" id="period-swarm">/ month</span>
                 </div>
                 <ul class="feature-list">
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Everything in Personal Node</span>
+                        <span>Everything in Sovereign Persona</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>5 GB Encrypted GCS Brain Vault</span>
+                        <span>10 GB Encrypted Brain Vault</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Multi-agent coordination (10 Agent Personas)</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
@@ -119,37 +153,33 @@
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Multi-agent coordination (OpenClaw + Goose + Pi)</span>
+                        <span>Dynamic 2D/3D knowledge graph cockpit</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Dynamic 2D/3D knowledge graph visualizer</span>
-                    </li>
-                    <li class="feature-item">
-                        <span class="feature-icon">✓</span>
-                        <span>Private operator key recovery for custom emails</span>
+                        <span>Unlimited Model Context Protocol (MCP) routing</span>
                     </li>
                 </ul>
                 <button class="btn-primary btn-full" onclick="checkout('swarm')">Deploy Swarm Substrate</button>
             </div>
 
-            <!-- Tier 3: Enterprise Substrate -->
+            <!-- Tier 4: Enterprise Substrate ($49/mo) -->
             <div class="pricing-card">
                 <h2 class="pricing-tier-name">Enterprise Substrate</h2>
-                <p class="pricing-tier-desc">Dedicated high-throughput context infrastructure for autonomous agent networks.</p>
+                <p class="pricing-tier-desc">Dedicated high-throughput context infrastructure with custom branding.</p>
                 <div class="pricing-price-box">
                     <span class="price-currency">$</span>
-                    <span class="price-amount" id="price-enterprise">99</span>
+                    <span class="price-amount" id="price-enterprise">49</span>
                     <span class="price-period" id="period-enterprise">/ month</span>
                 </div>
                 <ul class="feature-list">
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Dedicated Cloud Run container & isolated VPC</span>
+                        <span>Custom domain routing (yourdomain.com)</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Custom domain routing with auto-provisioned SSL</span>
+                        <span>Dedicated Cloud Run container & isolated storage</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
@@ -157,14 +187,14 @@
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>Unlimited agent personas and subgraphs</span>
+                        <span>Unlimited agent personas & subgraphs</span>
                     </li>
                     <li class="feature-item">
                         <span class="feature-icon">✓</span>
-                        <span>99.9% Uptime SLA and dedicated support channel</span>
+                        <span>Full data sovereignty export & priority SLA</span>
                     </li>
                 </ul>
-                <button class="btn-secondary btn-full" onclick="checkout('enterprise')">Contact Enterprise Council</button>
+                <button class="btn-secondary btn-full" onclick="checkout('enterprise')">Connect with Council</button>
             </div>
 
         </div>
@@ -177,7 +207,7 @@
                 © 2026 Myceliate.cv · Sovereign Agent Persona Substrate
             </div>
             <ul class="footer-links">
-                <li><a href="/" class="footer-link">Landing</a></li>
+                <li><a href="/" class="footer-link">Home</a></li>
                 <li><a href="/pricing" class="footer-link">Pricing</a></li>
                 <li><a href="/stim" class="footer-link">STIM</a></li>
                 <li><a href="/review" class="footer-link">Attestation</a></li>
@@ -194,10 +224,10 @@
             const toggleSwitch = document.getElementById('billing-switch');
             const labelMonthly = document.getElementById('label-monthly');
             const labelAnnual = document.getElementById('label-annual');
-            const pricePersonal = document.getElementById('price-personal');
+            const pricePersona = document.getElementById('price-persona');
             const priceSwarm = document.getElementById('price-swarm');
             const priceEnterprise = document.getElementById('price-enterprise');
-            const periodPersonal = document.getElementById('period-personal');
+            const periodPersona = document.getElementById('period-persona');
             const periodSwarm = document.getElementById('period-swarm');
             const periodEnterprise = document.getElementById('period-enterprise');
 
@@ -205,20 +235,20 @@
                 toggleSwitch.classList.add('annual');
                 labelMonthly.classList.remove('active');
                 labelAnnual.classList.add('active');
-                pricePersonal.textContent = '90';
-                priceSwarm.textContent = '290';
-                priceEnterprise.textContent = '990';
-                periodPersonal.textContent = '/ year';
+                pricePersona.textContent = '39';
+                priceSwarm.textContent = '139';
+                priceEnterprise.textContent = '490';
+                periodPersona.textContent = '/ year';
                 periodSwarm.textContent = '/ year';
                 periodEnterprise.textContent = '/ year';
             } else {
                 toggleSwitch.classList.remove('annual');
                 labelMonthly.classList.add('active');
                 labelAnnual.classList.remove('active');
-                pricePersonal.textContent = '9';
-                priceSwarm.textContent = '29';
-                priceEnterprise.textContent = '99';
-                periodPersonal.textContent = '/ month';
+                pricePersona.textContent = '4';
+                priceSwarm.textContent = '14';
+                priceEnterprise.textContent = '49';
+                periodPersona.textContent = '/ month';
                 periodSwarm.textContent = '/ month';
                 periodEnterprise.textContent = '/ month';
             }
@@ -242,7 +272,6 @@
                 } else if (data.redirect) {
                     window.location.href = data.redirect;
                 } else {
-                    alert('Checkout initiated for ' + planId + ' plan. Connecting to substrate coordinator.');
                     window.location.href = '/signup?plan=' + planId;
                 }
             } catch (err) {
