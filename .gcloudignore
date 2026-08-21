@@ -1,0 +1,10 @@
+.gcloudignore
+.git
+.gitignore
+node_modules/
+*.png
+scratch/
+puppeteer_test.js
+old_script_diff.txt
+script_history.txt
+patch_*.py

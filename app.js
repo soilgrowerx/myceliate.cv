@@ -211,6 +211,11 @@ function authMiddleware(req, res, next) {
         '/api/auth',
         '/api/auth/reset',
         '/api/auth/verify',
+        '/api/outcomes',
+        '/api/review',
+        '/api/create-checkout-session',
+        '/api/signup',
+        '/api/interview',
         '/api/query',
         '/query'
     ];

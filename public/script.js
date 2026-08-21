@@ -1,26 +1,62 @@
 // --- UI & Chat Logic ---
-const questionInput = document.getElementById('questionInput');
-const askBtn = document.getElementById('ask-btn');
-const messagesArea = document.getElementById('messages-area');
+const questionInput = document.getElementById("questionInput");
+const askBtn = document.getElementById("ask-btn");
+const messagesArea = document.getElementById("messages-area");
+
+// Default Verified Outcomes Fallback
+const DEFAULT_VERIFIED_OUTCOMES = [
+    {
+        title: "Soil Grower Arboriculture Operation",
+        description: "Primary contractor and operator for Bluffview estate arboriculture and ecological management.",
+        category: "soil-grower",
+        signal: "VERIFIED LEDGER"
+    },
+    {
+        title: "Arboracle Context Infrastructure",
+        description: "Decentralized tree inventory system deployed across Dallas residential and commercial estates.",
+        category: "arboracle",
+        signal: "CRYPTOGRAPHIC PROOF"
+    },
+    {
+        title: "STIM Protocol: Thermodynamic Alignment",
+        description: "Proof-of-computation substrate ensuring autonomous AI agents operate under thermodynamic grounding.",
+        category: "stim",
+        signal: "PROTOCOL SPEC"
+    },
+    {
+        title: "Clay Hunt Fellowship",
+        description: "Selected fellow for veteran leadership in environmental resilience and public crisis management.",
+        category: "military-leadership",
+        signal: "ORGANIZATIONAL RECORD"
+    },
+    {
+        title: "Mycelial Brain MCP Substrate",
+        description: "Serverless Model Context Protocol store coordinating persistent multi-agent memory over Google Cloud Storage.",
+        category: "openclaw",
+        signal: "CODE PROVENANCE"
+    }
+];
 
 // Initialize chat history from sessionStorage
-let chatHistory = JSON.parse(sessionStorage.getItem('myceliateChatHistory')) || [];
+let chatHistory = JSON.parse(sessionStorage.getItem("myceliateChatHistory")) || [];
+
+// Global animation state
+let targetCameraZ = 1000;
+let isInteracting = false;
 
 function appendMessage(text, isUser = false, saveToHistory = true) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
+    if (!messagesArea) return;
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "message " + (isUser ? "user-message" : "ai-message");
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "message-content";
     
     if (isUser || !window.marked) {
         contentDiv.textContent = text;
     } else {
-        // Parse markdown for AI responses to handle **bold** and formatting beautifully
-        contentDiv.innerHTML = marked.parse(text);
-        
-        // Remove bottom margin on last paragraphs
-        const lastP = contentDiv.querySelector('p:last-child');
-        if (lastP) lastP.style.marginBottom = '0';
+        contentDiv.innerHTML = window.marked.parse(text);
+        const lastP = contentDiv.querySelector("p:last-child");
+        if (lastP) lastP.style.marginBottom = "0";
     }
     
     msgDiv.appendChild(contentDiv);
@@ -29,7 +65,7 @@ function appendMessage(text, isUser = false, saveToHistory = true) {
 
     if (saveToHistory) {
         chatHistory.push({ text, isUser });
-        sessionStorage.setItem('myceliateChatHistory', JSON.stringify(chatHistory));
+        sessionStorage.setItem("myceliateChatHistory", JSON.stringify(chatHistory));
     }
 }
 
@@ -39,11 +75,12 @@ if (chatHistory.length > 0) {
 }
 
 function appendLoader() {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message ai-message loader-msg';
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content loading-dots';
-    contentDiv.innerHTML = '<span></span><span></span><span></span>';
+    if (!messagesArea) return null;
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "message ai-message loader-msg";
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "message-content loading-dots";
+    contentDiv.innerHTML = "<span style='color:var(--accent-gold);'>Synthesizing response from neural memory...</span>";
     msgDiv.appendChild(contentDiv);
     messagesArea.appendChild(msgDiv);
     messagesArea.scrollTop = messagesArea.scrollHeight;
@@ -51,244 +88,175 @@ function appendLoader() {
 }
 
 async function askQuestion() {
+    if (!questionInput) return;
     const question = questionInput.value.trim();
     if (!question) return;
 
-    questionInput.value = '';
+    questionInput.value = "";
     appendMessage(question, true);
     
-    // Animate camera zooming forward through the 'starfield' / network
-    targetCameraZ -= 400; // zoom in deeply
+    targetCameraZ -= 300;
     isInteracting = true;
 
     const loader = appendLoader();
 
     try {
-        const usernameRoute = window.location.pathname.replace(/^\//, '') || 'george';
-        const response = await fetch('/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const usernameRoute = window.location.pathname.replace(/^\//, "") || "george";
+        const response = await fetch("/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: question, target_username: usernameRoute })
         });
 
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        if (loader) loader.remove();
+
+        if (!response.ok) {
+            appendMessage("Unable to retrieve neural synthesis: Server returned " + response.status);
+            return;
+        }
         
         const data = await response.json();
-        loader.remove();
-        
         let answerText = data.answer;
-        if (!answerText || answerText === '') {
-            answerText = "I couldn't find a specific answer to that in George's Brain.";
+        if (!answerText || answerText === "") {
+            answerText = "I could not find a specific record for that in the sovereign brain ledger.";
         }
         appendMessage(answerText);
     } catch (error) {
-        console.error('Error fetching data:', error);
-        loader.remove();
-        appendMessage(`System glitch... connection to brain failed. (${error.message})`);
+        if (loader) loader.remove();
+        appendMessage("Neural connection interrupted. Please try again: " + error.message);
     }
 
     setTimeout(() => { isInteracting = false; }, 2000);
 }
 
-askBtn.addEventListener('click', askQuestion);
-questionInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') askQuestion();
-});
-
-
-// --- Three.js Enhanced Mycelial/Starfield Network ---
-const canvas = document.getElementById('mycelium-canvas');
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x050508, 0.0008); // denser fog
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 6000);
-camera.position.z = 1000;
-let targetCameraZ = 1000;
-let isInteracting = false;
-
-const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-
-// Create geometry
-const particleCount = 600; // denser network
-const particles = new THREE.BufferGeometry();
-const particlePositions = new Float32Array(particleCount * 3);
-const particleVelocities = [];
-
-for (let i = 0; i < particleCount; i++) {
-    particlePositions[i * 3] = (Math.random() - 0.5) * 4000;
-    particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 4000;
-    particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 4000;
-
-    particleVelocities.push({
-        x: (Math.random() - 0.5) * 0.8,
-        y: (Math.random() - 0.5) * 0.8,
-        z: (Math.random() - 0.5) * 0.8
+if (askBtn) askBtn.addEventListener("click", askQuestion);
+if (questionInput) {
+    questionInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") askQuestion();
     });
 }
 
-particles.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+function renderOutcomeCards(outcomes) {
+    const outcomesContainer = document.getElementById("outcomes-container");
+    if (!outcomesContainer) return;
+    outcomesContainer.innerHTML = "";
 
-// Particle Materials
-// Create a glowing sprite for the nodes using Canvas
-function createCanvasMaterial(color, size) {
-    const matCanvas = document.createElement('canvas');
-    matCanvas.width = 128;
-    matCanvas.height = 128;
-    const context = matCanvas.getContext('2d');
-    
-    // radial gradient
-    const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-    gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.2, color);
-    gradient.addColorStop(0.4, 'rgba(0,10,30,0.5)');
-    gradient.addColorStop(1, 'rgba(0,0,0,0)');
-    
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, 128, 128);
-    
-    const texture = new THREE.CanvasTexture(matCanvas);
-    
-    return new THREE.PointsMaterial({
-        size: size,
-        map: texture,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        transparent: true,
-        opacity: 0.9
+    outcomes.forEach(out => {
+        const card = document.createElement("div");
+        card.className = "outcome-card";
+        card.setAttribute("data-category", out.category || "general");
+        
+        card.innerHTML = 
+            "<div class='outcome-title'>" + (out.title || "Verified Signal") + "</div>" +
+            "<div class='outcome-desc'>" + (out.description || "") + "</div>" +
+            "<div class='outcome-meta'>" +
+                "<span class='outcome-category'>" + (out.category ? out.category.replace(/-/g, " ") : "SIGNAL") + "</span>" +
+                "<span class='outcome-signal'>" + (out.signal || "VERIFIED") + "</span>" +
+            "</div>";
+        
+        card.addEventListener("click", () => {
+            let query = "Tell me more about " + (out.title || "this project") + " and verified outcomes.";
+            if (out.category === "soil-grower") {
+                query = "What is the Bluffview contract and the Soil Grower business?";
+            } else if (out.category === "arboracle") {
+                query = "Explain the Arboracle estate inventory and customer onboarding.";
+            } else if (out.category === "stim") {
+                query = "Explain the STIM Protocol and autonomous agent coordination.";
+            } else if (out.category === "military-leadership") {
+                query = "How did George get selected as a Clay Hunt Fellow?";
+            }
+            
+            if (questionInput) {
+                questionInput.value = query;
+                askQuestion();
+            }
+        });
+        
+        outcomesContainer.appendChild(card);
     });
 }
 
-const pMaterial = createCanvasMaterial('rgba(0, 210, 255, 1)', 60);
-const particleSystem = new THREE.Points(particles, pMaterial);
-scene.add(particleSystem);
-
-// Lines connecting nodes
-const linesGeometry = new THREE.BufferGeometry();
-const linesMaterial = new THREE.LineBasicMaterial({
-    color: 0x3a7bd5,
-    transparent: true,
-    opacity: 0.25,
-    blending: THREE.AdditiveBlending,
-    linewidth: 1
-});
-let linesMesh = new THREE.LineSegments(linesGeometry, linesMaterial);
-scene.add(linesMesh);
-
-// Mouse interaction
-let mouseX = 0;
-let mouseY = 0;
-let targetX = 0;
-let targetY = 0;
-const windowHalfX = window.innerWidth / 2;
-const windowHalfY = window.innerHeight / 2;
-
-document.addEventListener('mousemove', (event) => {
-    mouseX = (event.clientX - windowHalfX);
-    mouseY = (event.clientY - windowHalfY);
-});
-
-// Subtle automatic forward movement (starfield effect)
-let autoZMovement = 0.5;
-
-function animate() {
-    requestAnimationFrame(animate);
-
-    // Camera targets based on mouse
-    targetX = mouseX * 0.8;
-    targetY = mouseY * 0.8;
-
-    camera.position.x += (targetX - camera.position.x) * 0.05;
-    camera.position.y += (-targetY - camera.position.y) * 0.05;
-
-    // Zooming logic
-    if (!isInteracting) {
-        targetCameraZ -= autoZMovement;
-    }
-    
-    // Wrap camera Z to loop infinitely through the field
-    if (camera.position.z < -2000) {
-        camera.position.z = 2000;
-        targetCameraZ = 2000;
-    }
-
-    camera.position.z += (targetCameraZ - camera.position.z) * 0.05;
-    camera.lookAt(camera.position.x, camera.position.y, camera.position.z - 500); // look forward slightly offset
-
-    const positions = particleSystem.geometry.attributes.position.array;
-    const vertexCount = particleCount;
-    
-    // Network drift
-    particleSystem.rotation.x += 0.0003;
-    particleSystem.rotation.y += 0.0005;
-
-    for (let i = 0; i < vertexCount; i++) {
-        positions[i * 3] += particleVelocities[i].x;
-        positions[i * 3 + 1] += particleVelocities[i].y;
-        positions[i * 3 + 2] += particleVelocities[i].z;
-
-        // Wrap around boundary box
-        if (positions[i * 3] > 2000 || positions[i * 3] < -2000) particleVelocities[i].x *= -1;
-        if (positions[i * 3 + 1] > 2000 || positions[i * 3 + 1] < -2000) particleVelocities[i].y *= -1;
-        if (positions[i * 3 + 2] > 2000 || positions[i * 3 + 2] < -2000) particleVelocities[i].z *= -1;
-    }
-    particleSystem.geometry.attributes.position.needsUpdate = true;
-
-    // Draw localized connecting lines (Mycelium effect)
-    const linePositions = [];
-    // Dynamic connection distance based on interaction
-    const connectDistance = isInteracting ? 300 : 250;
-
-    for (let i = 0; i < vertexCount; i++) {
-        // Optimization: don't compute all N^2 pairs, just nearby subset roughly
-        // To keep 60fps with 600 nodes
-        for (let j = i + 1; j < vertexCount; j++) {
-            const dx = positions[i * 3] - positions[j * 3];
-            const dy = positions[i * 3 + 1] - positions[j * 3 + 1];
-            const dz = positions[i * 3 + 2] - positions[j * 3 + 2];
-            
-            // Fast culling
-            if (Math.abs(dx) > connectDistance || Math.abs(dy) > connectDistance || Math.abs(dz) > connectDistance) continue;
-            
-            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-
-            if (dist < connectDistance) {
-                linePositions.push(
-                    positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
-                    positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2]
-                );
+// --- Load Verifiable Outcomes with Resilient Fallback ---
+async function loadOutcomes() {
+    try {
+        const response = await fetch("/api/outcomes");
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                renderOutcomeCards(data);
+                return;
             }
         }
+    } catch (err) {
+        console.warn("Using verified outcome fallback:", err);
     }
-
-    linesMesh.geometry.dispose();
-    linesMesh.geometry = new THREE.BufferGeometry();
-    linesMesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-    
-    // Node pulse effect when interacting
-    if(isInteracting) {
-        pMaterial.opacity = 1;
-        pMaterial.size = 80;
-    } else {
-        pMaterial.opacity = 0.8;
-        pMaterial.size = 60;
-    }
-
-    renderer.render(scene, camera);
+    renderOutcomeCards(DEFAULT_VERIFIED_OUTCOMES);
 }
 
-// Handle resize
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+document.addEventListener("DOMContentLoaded", loadOutcomes);
+
+// --- Three.js Enhanced Mycelial/Starfield Network ---
+const canvas = document.getElementById("mycelium-canvas");
+if (canvas && typeof THREE !== "undefined") {
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x080E0A, 0.0008); 
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 6000);
+    camera.position.z = 1000;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-});
 
-// Scroll interaction to manual zoom
-window.addEventListener('wheel', (e) => {
-    targetCameraZ += e.deltaY * 0.5;
-});
+    const particleCount = 400; 
+    const particles = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
 
-// Start animation
-animate();
+    const colorGold = new THREE.Color(0xE5A93C);
+    const colorGreen = new THREE.Color(0x5A8A62);
+
+    for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 2000;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 2000;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 3000;
+
+        const mixed = Math.random() > 0.4 ? colorGold : colorGreen;
+        colors[i * 3] = mixed.r;
+        colors[i * 3 + 1] = mixed.g;
+        colors[i * 3 + 2] = mixed.b;
+    }
+
+    particles.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    particles.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+    const pMaterial = new THREE.PointsMaterial({
+        size: 4,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.75
+    });
+
+    const particleSystem = new THREE.Points(particles, pMaterial);
+    scene.add(particleSystem);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        particleSystem.rotation.y += 0.0004;
+        particleSystem.rotation.x += 0.0002;
+
+        if (isInteracting) {
+            camera.position.z += (targetCameraZ - camera.position.z) * 0.05;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+}

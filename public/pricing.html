@@ -3,218 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Myceliate CV | Brain Upgrades</title>
-    <link rel="manifest" href="/manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>Pricing & Node Infrastructure | Myceliate.cv</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
-    <style>
-        .pricing-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 60px 20px;
-            text-align: center;
-            max-width: 1000px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 10;
-        }
-
-        .pricing-container h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            color: #fff;
-        }
-
-        .pricing-container p {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 50px;
-        }
-
-        .tiers {
-            display: flex;
-            gap: 30px;
-            justify-content: center;
-            flex-wrap: wrap;
-            width: 100%;
-        }
-
-        .tier-card {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(100, 255, 218, 0.2);
-            border-radius: 12px;
-            padding: 40px;
-            width: 300px;
-            text-align: left;
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s, border-color 0.3s;
-            position: relative;
-        }
-
-        .tier-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(100, 255, 218, 0.5);
-        }
-
-        .tier-card.popular {
-            border-color: rgba(100, 255, 218, 0.8);
-            box-shadow: 0 0 20px rgba(100, 255, 218, 0.1);
-        }
-
-        .tier-card.popular::before {
-            content: 'Recommended';
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #64ffda;
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-
-        .tier-name {
-            font-size: 1.5rem;
-            color: #64ffda;
-            margin-bottom: 10px;
-        }
-
-        .tier-price {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: #fff;
-        }
-
-        .tier-price span {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .tier-features {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 30px;
-        }
-
-        .tier-features li {
-            font-size: 0.95rem;
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: flex-start;
-        }
-
-        .tier-features li::before {
-            content: '✓';
-            color: #64ffda;
-            margin-right: 10px;
-            font-weight: bold;
-        }
-
-        .btn-upgrade {
-            display: inline-block;
-            width: 100%;
-            padding: 12px;
-            text-align: center;
-            background: rgba(100, 255, 218, 0.1);
-            color: #64ffda;
-            text-decoration: none;
-            border: 1px solid #64ffda;
-            border-radius: 4px;
-            font-weight: 500;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .btn-upgrade:hover {
-            background: rgba(100, 255, 218, 0.2);
-            box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
-        }
-
-        .btn-upgrade.primary {
-            background: #64ffda;
-            color: #0a0a0a;
-        }
-
-        .btn-upgrade.primary:hover {
-            background: #4adebb;
-            box-shadow: 0 0 15px rgba(100, 255, 218, 0.4);
-        }
-    </style>
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-    <canvas id="mycelium-canvas"></canvas>
+    <div class="ambient-mesh"></div>
 
-    <div class="glass-overlay" style="overflow-y: auto;">
-        <div class="pricing-container">
-            <h1>Inference Fidelity</h1>
-            <p>Select your integration tier and unlock Fungi Brain Syncing.</p>
-
-            <div class="tiers">
-                <div class="tier-card">
-                    <div class="tier-name">Free</div>
-                    <div class="tier-price">$0<span>/mo</span></div>
-                    <ul class="tier-features">
-                        <li>Public Profile</li>
-                        <li>Limited Context History</li>
-                        <li>Read-only Brain access</li>
-                        <li>Basic Neural Canvas</li>
-                    </ul>
-                    <a href="/george" class="btn-upgrade">Current Tier</a>
+    <!-- Top Site Navigation Header -->
+    <header class="site-header">
+        <div class="header-container">
+            <a href="/" class="brand-group">
+                <div class="brand-logo">Myceliate<span>.cv</span></div>
+                <div class="status-pill">
+                    <span class="status-dot"></span>
+                    <span>NODE ONLINE</span>
                 </div>
-
-                <div class="tier-card popular">
-                    <div class="tier-name">Spore</div>
-                    <div class="tier-price">$9<span>/mo</span></div>
-                    <ul class="tier-features">
-                        <li>Active Brain syncing (50MB)</li>
-                        <li>Standard Inference</li>
-                        <li>Mobile PWA Offline Sync</li>
-                        <li>Daily Context Logs</li>
-                    </ul>
-                    <button class="btn-upgrade primary" onclick="checkout('spore')">Synthesize Spore</button>
-                </div>
-
-                <div class="tier-card">
-                    <div class="tier-name">Mycelium</div>
-                    <div class="tier-price">$29<span>/mo</span></div>
-                    <ul class="tier-features">
-                        <li>Multi-Brain Architecture</li>
-                        <li>High-Fidelity Context Retention</li>
-                        <li>Priority Compute Inference</li>
-                        <li>Custom Tool & API Integrations</li>
-                    </ul>
-                    <button class="btn-upgrade" onclick="checkout('mycelium')">Initialize Mycelium</button>
-                </div>
-            </div>
-            
-            <a href="/george" style="color: rgba(255,255,255,0.5); text-decoration: none; margin-top: 40px; display: inline-block;">← Return to Main</a>
+            </a>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="/" class="nav-link">Home</a></li>
+                    <li><a href="/george" class="nav-link">George</a></li>
+                    <li><a href="/pricing" class="nav-link active">Pricing</a></li>
+                    <li><a href="/stim" class="nav-link">STIM</a></li>
+                    <li><a href="/review" class="nav-link">Attestation</a></li>
+                </ul>
+            </nav>
+            <a href="/brain" class="btn-operator">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>OPERATOR ACCESS</span>
+            </a>
         </div>
-    </div>
+    </header>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="/script.js"></script>
+    <main class="pricing-page-wrapper">
+        <div class="pricing-header">
+            <div class="hero-badge">INFRASTRUCTURE TIERS</div>
+            <h1 class="pricing-title">Sovereign Brain Node Sponsorship</h1>
+            <p class="pricing-subtitle">Ground your autonomous AI agents with immutable context storage, thermodynamic attestation, and Model Context Protocol routing.</p>
+        </div>
+
+        <div class="billing-toggle-container">
+            <span class="billing-label active" id="label-monthly" onclick="setBillingPeriod('monthly')">Monthly Billing</span>
+            <div class="toggle-switch" id="billing-switch" onclick="toggleBillingPeriod()">
+                <div class="toggle-slider"></div>
+            </div>
+            <span class="billing-label" id="label-annual" onclick="setBillingPeriod('annual')">
+                Annual Billing <span class="discount-badge">SAVE 20%</span>
+            </span>
+        </div>
+
+        <div class="pricing-grid">
+            
+            <!-- Tier 1: Personal Node -->
+            <div class="pricing-card">
+                <h2 class="pricing-tier-name">Personal Node</h2>
+                <p class="pricing-tier-desc">Individual memory indexing and verifiable public persona for sovereign builders.</p>
+                <div class="pricing-price-box">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount" id="price-personal">9</span>
+                    <span class="price-period" id="period-personal">/ month</span>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Custom persona route (myceliate.cv/yourname)</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>250 MB Sovereign GCS Brain Store</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Gemini 3 Neural Context Synthesis</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Model Context Protocol (MCP) tool support</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Verifiable outcome ledger integration</span>
+                    </li>
+                </ul>
+                <button class="btn-secondary btn-full" onclick="checkout('personal')">Deploy Personal Node</button>
+            </div>
+
+            <!-- Tier 2: Collective Swarm (Featured) -->
+            <div class="pricing-card featured">
+                <div class="featured-pill">RECOMMENDED</div>
+                <h2 class="pricing-tier-name">Collective Swarm</h2>
+                <p class="pricing-tier-desc">Multi-agent context substrate for teams, research labs, and agentic workflows.</p>
+                <div class="pricing-price-box">
+                    <span class="price-currency" style="color:var(--accent-gold);">$</span>
+                    <span class="price-amount" id="price-swarm" style="color:var(--accent-gold);">29</span>
+                    <span class="price-period" id="period-swarm">/ month</span>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Everything in Personal Node</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>5 GB Encrypted GCS Brain Vault</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>STIM Protocol thermodynamic attestation</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Multi-agent coordination (OpenClaw + Goose + Pi)</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Dynamic 2D/3D knowledge graph visualizer</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Private operator key recovery for custom emails</span>
+                    </li>
+                </ul>
+                <button class="btn-primary btn-full" onclick="checkout('swarm')">Deploy Swarm Substrate</button>
+            </div>
+
+            <!-- Tier 3: Enterprise Substrate -->
+            <div class="pricing-card">
+                <h2 class="pricing-tier-name">Enterprise Substrate</h2>
+                <p class="pricing-tier-desc">Dedicated high-throughput context infrastructure for autonomous agent networks.</p>
+                <div class="pricing-price-box">
+                    <span class="price-currency">$</span>
+                    <span class="price-amount" id="price-enterprise">99</span>
+                    <span class="price-period" id="period-enterprise">/ month</span>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Dedicated Cloud Run container & isolated VPC</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Custom domain routing with auto-provisioned SSL</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>50 GB High-Throughput Memory Bucket</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Unlimited agent personas and subgraphs</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>99.9% Uptime SLA and dedicated support channel</span>
+                    </li>
+                </ul>
+                <button class="btn-secondary btn-full" onclick="checkout('enterprise')">Contact Enterprise Council</button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-copyright">
+                © 2026 Myceliate.cv · Sovereign Agent Persona Substrate
+            </div>
+            <ul class="footer-links">
+                <li><a href="/" class="footer-link">Landing</a></li>
+                <li><a href="/george" class="footer-link">George</a></li>
+                <li><a href="/pricing" class="footer-link">Pricing</a></li>
+                <li><a href="/stim" class="footer-link">STIM</a></li>
+                <li><a href="/review" class="footer-link">Attestation</a></li>
+                <li><a href="/brain" class="footer-link">Operator</a></li>
+            </ul>
+        </div>
+    </footer>
+
     <script>
-        async function checkout(tier) {
+        let currentPeriod = 'monthly';
+
+        function setBillingPeriod(period) {
+            currentPeriod = period;
+            const toggleSwitch = document.getElementById('billing-switch');
+            const labelMonthly = document.getElementById('label-monthly');
+            const labelAnnual = document.getElementById('label-annual');
+            const pricePersonal = document.getElementById('price-personal');
+            const priceSwarm = document.getElementById('price-swarm');
+            const priceEnterprise = document.getElementById('price-enterprise');
+            const periodPersonal = document.getElementById('period-personal');
+            const periodSwarm = document.getElementById('period-swarm');
+            const periodEnterprise = document.getElementById('period-enterprise');
+
+            if (period === 'annual') {
+                toggleSwitch.classList.add('annual');
+                labelMonthly.classList.remove('active');
+                labelAnnual.classList.add('active');
+                pricePersonal.textContent = '90';
+                priceSwarm.textContent = '290';
+                priceEnterprise.textContent = '990';
+                periodPersonal.textContent = '/ year';
+                periodSwarm.textContent = '/ year';
+                periodEnterprise.textContent = '/ year';
+            } else {
+                toggleSwitch.classList.remove('annual');
+                labelMonthly.classList.add('active');
+                labelAnnual.classList.remove('active');
+                pricePersonal.textContent = '9';
+                priceSwarm.textContent = '29';
+                priceEnterprise.textContent = '99';
+                periodPersonal.textContent = '/ month';
+                periodSwarm.textContent = '/ month';
+                periodEnterprise.textContent = '/ month';
+            }
+        }
+
+        function toggleBillingPeriod() {
+            setBillingPeriod(currentPeriod === 'monthly' ? 'annual' : 'monthly');
+        }
+
+        async function checkout(planId) {
             try {
-                const res = await fetch('/api/create-checkout-session', {
+                const response = await fetch('/api/create-checkout-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tier })
+                    body: JSON.stringify({ plan: planId, billing: currentPeriod })
                 });
-                const { url, error } = await res.json();
-                if (url) {
-                    window.location.href = url;
+
+                const data = await response.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else if (data.redirect) {
+                    window.location.href = data.redirect;
                 } else {
-                    alert('Integration Error: ' + (error || 'Failed to initialize session.'));
+                    alert('Checkout initiated for ' + planId + ' plan. Connecting to substrate coordinator.');
+                    window.location.href = '/signup?plan=' + planId;
                 }
             } catch (err) {
-                alert('Network Error. Ensure you are connected to the swarm.');
+                window.location.href = '/signup?plan=' + planId;
             }
         }
     </script>
