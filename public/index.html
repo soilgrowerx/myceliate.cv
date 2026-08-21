@@ -3,324 +3,604 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Myceliate — Personal World Model</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background-color: #050508;
-            color: #e8e8ec;
-            font-family: 'Space Grotesk', sans-serif;
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            position: relative;
-        }
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80vw;
-            height: 80vw;
-            background: radial-gradient(circle, rgba(0,210,255,0.08) 0%, rgba(0,0,0,0) 60%);
-            pointer-events: none;
-        }
-        .logo {
-            font-size: 4rem;
-            font-weight: 700;
-            letter-spacing: 4px;
-            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 50%, #00d2ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-size: 200% auto;
-            animation: shimmer 4s linear infinite;
-            margin-bottom: 8px;
-        }
-        @keyframes shimmer {
-            to { background-position: 200% center; }
-        }
-        .tagline {
-            font-size: 1.3rem;
-            color: #a0a0b0;
-            font-weight: 300;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
-        }
-        .mission {
-            max-width: 600px;
-            text-align: center;
-            color: #b0b0bc;
-            font-size: 1.05rem;
-            margin-bottom: 40px;
-            line-height: 1.7;
-        }
-        .cta-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 32px;
-            background: linear-gradient(135deg, rgba(0,210,255,0.15), rgba(58,123,213,0.15));
-            border: 1px solid rgba(0,210,255,0.4);
-            border-radius: 12px;
-            color: #fff;
-            text-decoration: none;
-            font-size: 1.1rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 40px rgba(0,210,255,0.25);
-            border-color: rgba(0,210,255,0.7);
-        }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            max-width: 1000px;
-            margin: 60px auto;
-            padding: 0 20px;
-        }
-        .feature-card {
-            background: rgba(15,15,20,0.6);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
-            padding: 28px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-        .feature-card:hover {
-            border-color: rgba(0,210,255,0.3);
-            transform: translateY(-4px);
-        }
-        .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 16px;
-        }
-        .feature-title {
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 10px;
-        }
-        .feature-desc {
-            color: #909098;
-            font-size: 0.95rem;
-        }
-        .protocol-section {
-            max-width: 800px;
-            margin: 80px auto;
-            padding: 40px;
-            background: rgba(10,10,15,0.5);
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.06);
-        }
-        .protocol-title {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .protocol-content {
-            color: #b0b0bc;
-            font-size: 1rem;
-            line-height: 1.8;
-        }
-        .protocol-content strong {
-            color: #00d2ff;
-        }
-        .trajectory {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin: 30px 0;
-        }
-        .trajectory-step {
-            padding: 10px 20px;
-            background: rgba(0,210,255,0.1);
-            border: 1px solid rgba(0,210,255,0.3);
-            border-radius: 30px;
-            font-size: 0.9rem;
-            color: #fff;
-        }
-        .trajectory-arrow {
-            color: #00d2ff;
-            font-size: 1.2rem;
-        }
-        .footer {
-            text-align: center;
-            padding: 40px;
-            color: #606068;
-            font-size: 0.9rem;
-        }
-        .footer a {
-            color: #00d2ff;
-            text-decoration: none;
-        }
-    
-        /* ── Mobile responsive ── */
-        @media (max-width: 640px) {
-            .logo {
-                font-size: 2.4rem;
-                letter-spacing: 2px;
-            }
-            .tagline {
-                font-size: 1rem;
-            }
-            .mission {
-                font-size: 0.95rem;
-                padding: 0 8px;
-            }
-            .features {
-                grid-template-columns: 1fr;
-                padding: 0 16px;
-                margin: 40px auto;
-            }
-            .feature-card {
-                width: 100%;
-                min-width: 0;
-            }
-            .trajectory {
-                flex-direction: column;
-                align-items: center;
-                gap: 8px;
-            }
-            .trajectory-arrow {
-                transform: rotate(90deg);
-            }
-            .protocol-section {
-                padding: 24px 16px;
-                margin: 40px 16px;
-            }
-            .protocol-title {
-                font-size: 1.4rem;
-            }
-            .cta-button {
-                padding: 14px 24px;
-                font-size: 1rem;
-            }
-        }
-        @media (max-width: 900px) and (min-width: 641px) {
-            .features {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-    </style>
-    <link rel="manifest" href="/manifest.json">
+    <title>Myceliate.cv: Decentralized Context Infrastructure</title>
+    <meta name="description" content="Decentralized context infrastructure for autonomous AI agents. Grounded memory, Model Context Protocol architecture, and immutable GCS storage.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="hero">
-        <div class="logo">MYCELIATE</div>
-        <p class="tagline">Personal World Model & Living Identity</p>
-        
-        <p class="mission">
-            A living memory system that grows with you — not a static resume, but a dynamic representation of who you are, what you've built, and what comes next.
-        </p>
-        
-        <a href="/pricing.html" class="cta-button">
-            Synthesize Your Brain →
-        </a>
-        
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">🧠</div>
-                <div class="feature-title">World Model Architecture</div>
-                <div class="feature-desc">Replaces middle management with software-maintained reality. Tracks resources, objects, constraints, and outcomes — so you stay in executive mode.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">🌐</div>
-                <div class="feature-title">STIM Protocol</div>
-                <div class="feature-desc">Stasis Through Inferred Memory — a nature-based AI alignment framework grounded in the irrefutable truths of biological systems.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">🔄</div>
-                <div class="feature-title">Outcome Encoding</div>
-                <div class="feature-desc">Every action gets tracked through to result. Not just what happened — but what worked, what failed, and under what conditions.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">🛡️</div>
-                <div class="feature-title">Interpretive Boundary</div>
-                <div class="feature-desc">Distinguishes fact from hypothesis. The system never halluculates with confidence — it labels what it knows vs. what it infers.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">⏱️</div>
-                <div class="feature-title">Time as Moat</div>
-                <div class="feature-desc">Architecture can be copied. Months of accumulated outcome loops, high-fidelity signals, and verified capabilities cannot.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">🌱</div>
-                <div class="feature-title">Self-Growing</div>
-                <div class="feature-desc">Feeds on your work as a byproduct — GitHub commits, calendar events, outcomes. No manual data entry required.</div>
+    <div class="ambient-mesh"></div>
+
+    <!-- Header Navigation -->
+    <header class="site-header">
+        <div class="header-container">
+            <a href="/" class="brand-group">
+                <span class="brand-logo">MYCELIATE<span>.CV</span></span>
+                <div class="status-pill">
+                    <span class="status-dot"></span>
+                    <span>SUBSTRATE ACTIVE</span>
+                </div>
+            </a>
+
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="#architecture" class="nav-link">Architecture</a></li>
+                    <li><a href="#pillars" class="nav-link">Core Pillars</a></li>
+                    <li><a href="#benchmarks" class="nav-link">Telemetry</a></li>
+                    <li><a href="https://github.com/soilgrowerx/mycelial-brain-mcp" target="_blank" rel="noopener" class="nav-link">GitHub MCP</a></li>
+                </ul>
+            </nav>
+
+            <div class="header-actions">
+                <button type="button" class="btn-operator" id="btn-open-operator">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    OPERATOR ACCESS
+                </button>
             </div>
         </div>
-        
-        <div class="profiles-section" style="max-width: 1000px; margin: 40px auto; width: 100%; padding: 0 20px;">
-            <h2 class="protocol-title" style="margin-bottom: 30px;">Top Network Nodes</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
-                <a href="/george" class="feature-card" style="text-decoration: none; display: block; text-align: center; border-color: rgba(100, 255, 218, 0.3);">
-                    <div class="feature-icon" style="font-size: 2.5rem; margin-bottom: 10px;">🌲</div>
-                    <div class="feature-title">George Steward</div>
-                    <div class="feature-desc" style="color: #64ffda;">Genesis Node</div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="substrate-canvas-container">
+            <canvas id="substrate-canvas"></canvas>
+            <div class="substrate-mobile-fallback"></div>
+        </div>
+
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span>[ LAYER 0 CONTEXT SUBSTRATE ]</span>
+            </div>
+
+            <h1 class="hero-title">
+                Decentralized context infrastructure for <span class="highlight-gold">autonomous AI agents</span>
+            </h1>
+
+            <p class="hero-subtitle">
+                Standardized memory grounding, immutable state verification, and high-fidelity Model Context Protocol integration for sovereign agent collectives.
+            </p>
+
+            <div class="hero-ctas">
+                <a href="#architecture" class="btn-primary">
+                    <span>Explore Architecture</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+                <a href="https://github.com/soilgrowerx/mycelial-brain-mcp" target="_blank" rel="noopener" class="btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    <span>View MCP Repository</span>
                 </a>
             </div>
         </div>
+    </section>
 
-        <div class="protocol-section">
-            <h2 class="protocol-title">The Trajectory</h2>
-            <div class="trajectory">
-                <span class="trajectory-step">Plant Killer</span>
-                <span class="trajectory-arrow">→</span>
-                <span class="trajectory-step">Gardener</span>
-                <span class="trajectory-arrow">→</span>
-                <span class="trajectory-step">Soil Grower</span>
-                <span class="trajectory-arrow">→</span>
-                <span class="trajectory-step">Sanctuary Builder</span>
-                <span class="trajectory-arrow">→</span>
-                <span class="trajectory-step">Earth Regenerator</span>
-            </div>
-            <p class="protocol-content">
-                <strong>STIM</strong> grounds every thought in nature's physics. Like mycelium connecting trees and transferring nutrients across forests, this system connects your knowledge and transfers context across every tool and agent you use.
-            </p>
+    <!-- Telemetry Strip -->
+    <div class="telemetry-strip" id="benchmarks">
+        <div class="telemetry-item">
+            <span class="telemetry-label">Mean Context Latency</span>
+            <span class="telemetry-value gold">&lt; 24ms</span>
         </div>
-        
-        <div class="footer">
-            <p>Built on the STIM Protocol — Nature-based AI alignment</p>
-            <p style="margin-top: 10px;">
-                <a href="https://github.com/soilgrowerx/mycelial-brain-mcp" target="_blank">GitHub</a> · 
-                <a href="/pricing.html">Pricing</a> ·
-                <a href="/review">Write a Review</a>
-            </p>
+        <div class="telemetry-item">
+            <span class="telemetry-label">Interface Protocol</span>
+            <span class="telemetry-value">JSON-RPC 2.0 / MCP</span>
+        </div>
+        <div class="telemetry-item">
+            <span class="telemetry-label">Storage Consistency</span>
+            <span class="telemetry-value">Content Addressed GCS</span>
+        </div>
+        <div class="telemetry-item">
+            <span class="telemetry-label">Active Agent Nodes</span>
+            <span class="telemetry-value gold">5 Sovereign Nodes</span>
         </div>
     </div>
 
+    <!-- Architectural Diagram Section -->
+    <section class="content-section" id="architecture">
+        <div class="section-header">
+            <span class="section-tag">System Topology</span>
+            <h2 class="section-title">Split-Tier Architecture Overview</h2>
+            <p class="section-desc">
+                High-performance decoupling of public interface telemetry from authenticated operator execution environments and immutable cloud storage.
+            </p>
+        </div>
+
+        <div class="blueprint-container">
+            <div class="blueprint-grid">
+                <!-- Node 1: MCP Server -->
+                <div class="blueprint-node">
+                    <div class="node-icon gold">🍄</div>
+                    <h3 class="node-title">MCP Protocol Server</h3>
+                    <span class="node-tech">JSON-RPC 2.0 Endpoint</span>
+                    <p class="node-desc">
+                        Standardized tools for agent invocation: brain_read, brain_write, and brain_search with semantic vector routing.
+                    </p>
+                </div>
+
+                <!-- Connector -->
+                <div class="blueprint-connector">
+                    <div class="connector-line"></div>
+                    <span class="connector-badge">TLS / IAM</span>
+                </div>
+
+                <!-- Node 2: Cloud Run Environment -->
+                <div class="blueprint-node">
+                    <div class="node-icon">⚡</div>
+                    <h3 class="node-title">Cloud Run Execution</h3>
+                    <span class="node-tech">Serverless Container Tier</span>
+                    <p class="node-desc">
+                        Sub-second horizontal scaling on Google Cloud Run with strict session isolation and edge proxying.
+                    </p>
+                </div>
+
+                <!-- Connector -->
+                <div class="blueprint-connector">
+                    <div class="connector-line"></div>
+                    <span class="connector-badge">SHA-256</span>
+                </div>
+
+                <!-- Node 3: GCS Storage -->
+                <div class="blueprint-node">
+                    <div class="node-icon gold">📦</div>
+                    <h3 class="node-title">GCS Object Store</h3>
+                    <span class="node-tech">Immutable Memory Vault</span>
+                    <p class="node-desc">
+                        Cryptographically indexed Markdown and JSON-LD documents backed by Google Cloud Storage persistence.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Pillars Section -->
+    <section class="content-section" id="pillars">
+        <div class="section-header">
+            <span class="section-tag">Core Fundamentals</span>
+            <h2 class="section-title">Three Pillars of Grounded Intelligence</h2>
+            <p class="section-desc">
+                Engineered to eliminate hallucination drift and sustain multi-agent collaboration over infinite horizons.
+            </p>
+        </div>
+
+        <div class="pillars-grid">
+            <!-- Pillar 1 -->
+            <div class="pillar-card">
+                <span class="pillar-number">PILLAR 01</span>
+                <h3 class="pillar-title">MCP Protocol Architecture</h3>
+                <p class="pillar-body">
+                    Native Model Context Protocol interface enabling any autonomous agent or LLM client to dynamically discover, read, and write memory nodes across domain namespaces.
+                </p>
+                <div class="pillar-meta">
+                    <span>Protocol: Model Context v2.0</span>
+                    <span>Format: JSON-RPC</span>
+                </div>
+            </div>
+
+            <!-- Pillar 2 -->
+            <div class="pillar-card">
+                <span class="pillar-number">PILLAR 02</span>
+                <h3 class="pillar-title">Thermodynamic Grounding</h3>
+                <p class="pillar-body">
+                    Built upon the STIM protocol (Stasis Through Inferred Memory). Every fact is validated through 7 immutable axioms grounded in the physics of natural systems.
+                </p>
+                <div class="pillar-meta">
+                    <span>Axioms: 7 Core Proofs</span>
+                    <span>Anchor: Truth Over Completeness</span>
+                </div>
+            </div>
+
+            <!-- Pillar 3 -->
+            <div class="pillar-card">
+                <span class="pillar-number">PILLAR 03</span>
+                <h3 class="pillar-title">GCS Object Storage</h3>
+                <p class="pillar-body">
+                    High-durability content-addressed storage. Documents receive immutable provenance headers, cryptographic SHA-256 hashes, and cross-agent relationship tagging.
+                </p>
+                <div class="pillar-meta">
+                    <span>Storage: Cloud Storage</span>
+                    <span>Integrity: SHA-256 Hashed</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Open Source Callout -->
+    <section class="content-section">
+        <div class="open-source-banner">
+            <div class="banner-content">
+                <h3 class="banner-title">Open Source Context Protocol</h3>
+                <p class="banner-desc">
+                    Deploy your own self-hosted MCP server with Google Cloud Storage persistence. Fully compatible with OpenClaw, Gemini CLI, Claude Desktop, and Hermes.
+                </p>
+            </div>
+            <a href="https://github.com/soilgrowerx/mycelial-brain-mcp" target="_blank" rel="noopener" class="btn-primary">
+                <span>View on GitHub</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-copyright">
+                &copy; 2026 Myceliate.cv. Sovereign AI Infrastructure. All rights reserved.
+            </div>
+            <ul class="footer-links">
+                <li><a href="https://github.com/soilgrowerx/mycelial-brain-mcp" target="_blank" rel="noopener" class="footer-link">GitHub Repository</a></li>
+                <li><a href="/pricing.html" class="footer-link">Sponsorship &amp; Nodes</a></li>
+                <li><a href="/review" class="footer-link">Peer Signals</a></li>
+                <li><a href="#" id="footer-operator-link" class="footer-link">Operator Portal</a></li>
+            </ul>
+        </div>
+    </footer>
+
+    <!-- Slide-Over Operator Modal -->
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="slide-modal" id="slide-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Operator Terminal Access</h3>
+            <button type="button" class="btn-modal-close" id="btn-close-modal" aria-label="Close modal">&times;</button>
+        </div>
+
+        <div class="modal-tabs">
+            <button type="button" class="modal-tab-btn active" id="tab-btn-auth" onclick="switchModalTab('auth')">Access Key</button>
+            <button type="button" class="modal-tab-btn" id="tab-btn-reset" onclick="switchModalTab('reset')">Key Recovery</button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Tab 1: Access Key Login -->
+            <div class="tab-pane active" id="pane-auth">
+                <div class="modal-error-banner" id="auth-error-banner"></div>
+
+                <form id="form-operator-auth">
+                    <div class="form-group">
+                        <label for="input-access-key" class="form-label">OPERATOR ACCESS KEY</label>
+                        <input type="password" id="input-access-key" class="form-input" placeholder="Enter operator access key" autocomplete="current-password" required autofocus>
+                        <p class="form-help">
+                            Authorized operators authenticate to access the three-panel neural workspace and context telemetry.
+                        </p>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-full" id="btn-auth-submit">
+                        <span>Authenticate Session</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </form>
+
+                <p style="margin-top: 24px; text-align: center; font-size: 0.85rem; color: var(--text-muted);">
+                    Don't remember your access key? <a href="#" onclick="switchModalTab('reset'); return false;" style="color: var(--accent-gold); text-decoration: none;">Use Key Recovery &rarr;</a>
+                </p>
+            </div>
+
+            <!-- Tab 2: Key Reset & Recovery -->
+            <div class="tab-pane" id="pane-reset">
+                <div class="modal-error-banner" id="reset-error-banner"></div>
+                <div class="modal-success-banner" id="reset-success-banner"></div>
+
+                <form id="form-operator-reset">
+                    <div class="form-group">
+                        <label for="input-reset-email" class="form-label">VERIFIED OPERATOR EMAIL</label>
+                        <input type="email" id="input-reset-email" class="form-input" placeholder="sabione@gmail.com" autocomplete="email" required>
+                        <p class="form-help">
+                            Enter an authorized operator email (e.g. sabione@gmail.com or george@arboracle.app) to generate fresh access credentials and establish an active session.
+                        </p>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-full" id="btn-reset-submit">
+                        <span>Verify &amp; Generate Key</span>
+                    </button>
+
+                    <div style="margin-top: 18px; text-align: center;">
+                        <button type="button" class="btn-secondary btn-full" id="btn-emergency-recovery" style="font-size: 0.82rem; padding: 10px 16px;">
+                            <span>Emergency Operator Key Recovery</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Substrate Simulation & Interaction Script -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(reg => {
-            console.log('SW Registered!', reg.scope);
-          }).catch(err => {
-            console.warn('SW failed:', err);
-          });
+    // =========================================================================
+    // 1. Mobile-First Responsive Particle Hyphae Canvas Simulation
+    // =========================================================================
+    (function initSubstrateCanvas() {
+        const canvas = document.getElementById('substrate-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let width = 0;
+        let height = 0;
+        let particles = [];
+        let animationFrameId = null;
+        let isMobile = false;
+
+        function checkMobile() {
+            isMobile = window.innerWidth < 768;
+        }
+
+        function resize() {
+            checkMobile();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            width = canvas.parentElement.clientWidth;
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.45;
+                this.vy = (Math.random() - 0.5) * 0.45;
+                this.radius = Math.random() * 2 + 1;
+                this.isGold = Math.random() > 0.75;
+                this.energy = Math.random() * 0.5 + 0.5;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0) this.x = width;
+                else if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                else if (this.y > height) this.y = 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                if (this.isGold) {
+                    ctx.fillStyle = 'rgba(229, 169, 60, ' + (0.5 * this.energy) + ')';
+                } else {
+                    ctx.fillStyle = 'rgba(125, 255, 125, ' + (0.45 * this.energy) + ')';
+                }
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            // Mobile-first responsive optimization: fewer nodes below 768px
+            const count = isMobile ? 24 : Math.min(Math.floor((width * height) / 14000), 75);
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function drawConnections() {
+            const maxDistance = isMobile ? 110 : 160;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDistance) {
+                        const alpha = (1 - dist / maxDistance) * 0.28;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        
+                        // Subtle branching curvature
+                        const midX = (p1.x + p2.x) / 2 + (p1.vx * 15);
+                        const midY = (p1.y + p2.y) / 2 + (p1.vy * 15);
+                        ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
+
+                        if (p1.isGold || p2.isGold) {
+                            ctx.strokeStyle = 'rgba(229, 169, 60, ' + (alpha * 0.8) + ')';
+                            ctx.lineWidth = 0.9;
+                        } else {
+                            ctx.strokeStyle = 'rgba(90, 138, 98, ' + alpha + ')';
+                            ctx.lineWidth = 0.75;
+                        }
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+
+            drawConnections();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resizeSubstrateTimer);
+            window.resizeSubstrateTimer = setTimeout(resize, 150);
         });
-      }
+
+        resize();
+        animate();
+    })();
+
+    // =========================================================================
+    // 2. Slide-Over Operator Modal & Tab Switching
+    // =========================================================================
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const slideModal = document.getElementById('slide-modal');
+    const btnOpenOperator = document.getElementById('btn-open-operator');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    const footerOperatorLink = document.getElementById('footer-operator-link');
+
+    function openModal() {
+        modalBackdrop.classList.add('active');
+        slideModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => {
+            const input = document.getElementById('input-access-key');
+            if (input) input.focus();
+        }, 150);
+    }
+
+    function closeModal() {
+        modalBackdrop.classList.remove('active');
+        slideModal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if (btnOpenOperator) btnOpenOperator.addEventListener('click', openModal);
+    if (footerOperatorLink) footerOperatorLink.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+    if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
+    if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && slideModal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    window.switchModalTab = function(tabName) {
+        const tabBtnAuth = document.getElementById('tab-btn-auth');
+        const tabBtnReset = document.getElementById('tab-btn-reset');
+        const paneAuth = document.getElementById('pane-auth');
+        const paneReset = document.getElementById('pane-reset');
+
+        if (tabName === 'auth') {
+            tabBtnAuth.classList.add('active');
+            tabBtnReset.classList.remove('active');
+            paneAuth.classList.add('active');
+            paneReset.classList.remove('active');
+            document.getElementById('input-access-key').focus();
+        } else {
+            tabBtnReset.classList.add('active');
+            tabBtnAuth.classList.remove('active');
+            paneReset.classList.add('active');
+            paneAuth.classList.remove('active');
+            document.getElementById('input-reset-email').focus();
+        }
+    };
+
+    // =========================================================================
+    // 3. Phase 2: Auth Flow with HTTPOnly Cookie Exchange & Inline Error
+    // =========================================================================
+    const formAuth = document.getElementById('form-operator-auth');
+    const authErrorBanner = document.getElementById('auth-error-banner');
+    const btnAuthSubmit = document.getElementById('btn-auth-submit');
+
+    if (formAuth) {
+        formAuth.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            authErrorBanner.style.display = 'none';
+            btnAuthSubmit.disabled = true;
+            btnAuthSubmit.innerHTML = '<span>Authenticating...</span>';
+
+            const key = document.getElementById('input-access-key').value;
+
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    window.location.href = data.redirect || '/brain';
+                } else {
+                    authErrorBanner.textContent = data.error || 'Invalid operator access key. Access denied.';
+                    authErrorBanner.style.display = 'block';
+                }
+            } catch (err) {
+                authErrorBanner.textContent = 'Connection error. Unable to reach authentication server.';
+                authErrorBanner.style.display = 'block';
+            } finally {
+                btnAuthSubmit.disabled = false;
+                btnAuthSubmit.innerHTML = '<span>Authenticate Session</span>';
+            }
+        });
+    }
+
+    // =========================================================================
+    // 4. Phase 2: Mandatory Key Reset & Emergency Recovery Flow
+    // =========================================================================
+    const formReset = document.getElementById('form-operator-reset');
+    const resetErrorBanner = document.getElementById('reset-error-banner');
+    const resetSuccessBanner = document.getElementById('reset-success-banner');
+    const btnResetSubmit = document.getElementById('btn-reset-submit');
+    const btnEmergencyRecovery = document.getElementById('btn-emergency-recovery');
+
+    async function executeKeyReset(email, emergency) {
+        resetErrorBanner.style.display = 'none';
+        resetSuccessBanner.style.display = 'none';
+        btnResetSubmit.disabled = true;
+
+        try {
+            const response = await fetch('/api/auth/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, emergency_recovery: emergency })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                resetSuccessBanner.innerHTML = '<strong>' + data.message + '</strong><br><br>' +
+                    'New Generated Key: <code style="color:var(--accent-gold); font-family:var(--font-mono);">' + (data.new_access_key || 'Active') + '</code><br>' +
+                    '<span style="font-size:0.8rem; color:var(--text-secondary);">Session verified. Redirecting to /brain in 2 seconds...</span>';
+                resetSuccessBanner.style.display = 'block';
+
+                setTimeout(() => {
+                    window.location.href = data.redirect || '/brain';
+                }, 2000);
+            } else {
+                resetErrorBanner.textContent = data.error || 'Verification failed. Please check your email.';
+                resetErrorBanner.style.display = 'block';
+            }
+        } catch (err) {
+            resetErrorBanner.textContent = 'Reset request failed due to a network connection error.';
+            resetErrorBanner.style.display = 'block';
+        } finally {
+            btnResetSubmit.disabled = false;
+        }
+    }
+
+    if (formReset) {
+        formReset.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('input-reset-email').value;
+            executeKeyReset(email, false);
+        });
+    }
+
+    if (btnEmergencyRecovery) {
+        btnEmergencyRecovery.addEventListener('click', () => {
+            executeKeyReset('sabione@gmail.com', true);
+        });
+    }
     </script>
 </body>
 </html>

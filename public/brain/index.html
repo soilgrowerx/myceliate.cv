@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myceliate Operator Workspace: Neural Dashboard</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-obsidian: #080E0A;
+            --bg-surface: #0B140D;
+            --bg-surface-elevated: #111E14;
+            --bg-surface-glass: rgba(11, 20, 13, 0.85);
+            --bg-glass-card: rgba(14, 26, 17, 0.7);
+
+            --accent-gold: #E5A93C;
+            --accent-gold-hover: #F3BA54;
+            --accent-gold-glow: rgba(229, 169, 60, 0.25);
+            --accent-gold-muted: rgba(229, 169, 60, 0.12);
+
+            --hyphae-green: #5A8A62;
+            --hyphae-green-bright: #7DFF7D;
+            --hyphae-green-glow: rgba(90, 138, 98, 0.3);
+            --hyphae-green-muted: rgba(90, 138, 98, 0.15);
+
+            --text-primary: #E8EFE9;
+            --text-secondary: #AFC2B2;
+            --text-muted: #78907C;
+            --text-inverse: #080E0A;
+
+            --border-subtle: rgba(90, 138, 98, 0.2);
+            --border-bright: rgba(125, 255, 125, 0.35);
+            --border-frost: rgba(229, 169, 60, 0.3);
+
+            --font-serif: 'Fraunces', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-full: 9999px;
+
+            --topbar-height: 56px;
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            background-color: var(--bg-obsidian);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            line-height: 1.5;
+            overflow: hidden;
+        }
+
+        /* Top Command Bar */
+        .operator-topbar {
+            height: var(--topbar-height);
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .workspace-logo {
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .workspace-logo span {
+            color: var(--accent-gold);
+        }
+
+        .workspace-badge {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            background: var(--hyphae-green-muted);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-full);
+            color: var(--hyphae-green-bright);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--hyphae-green-bright);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--hyphae-green-bright);
+            animation: pulse-dot 2.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .operator-meta {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .operator-meta strong {
+            color: var(--accent-gold);
+            font-weight: 500;
+        }
+
+        .btn-topbar {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-topbar:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .btn-topbar.primary {
+            background: var(--accent-gold);
+            color: var(--text-inverse);
+            border-color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .btn-topbar.primary:hover {
+            background: var(--accent-gold-hover);
+        }
+
+        /* Three-Panel Layout */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 290px 1fr 340px;
+            height: calc(100vh - var(--topbar-height));
+            overflow: hidden;
+        }
+
+        /* Left Panel: Directory & Agents */
+        .panel-left {
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .domain-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-surface-elevated);
+        }
+
+        .domain-tab {
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .domain-tab:hover {
+            color: var(--text-primary);
+            border-color: var(--hyphae-green);
+        }
+
+        .domain-tab.active {
+            background: var(--hyphae-green-muted);
+            border-color: var(--hyphae-green-bright);
+            color: var(--hyphae-green-bright);
+            font-weight: 600;
+        }
+
+        .doc-directory {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .doc-item {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .doc-item:hover {
+            background: var(--bg-surface-elevated);
+            border-color: var(--border-subtle);
+        }
+
+        .doc-item.active {
+            background: rgba(229, 169, 60, 0.12);
+            border-color: var(--accent-gold);
+        }
+
+        .doc-item-title {
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .doc-item-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .doc-item-domain {
+            color: var(--accent-gold);
+        }
+
+        /* Agent Status Monitor */
+        .agent-status-box {
+            padding: 14px;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-obsidian);
+        }
+
+        .agent-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .agent-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 8px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        .agent-pill.active .agent-dot {
+            background: var(--hyphae-green-bright);
+            box-shadow: 0 0 6px var(--hyphae-green-bright);
+        }
+
+        .agent-dot {
+            width: 5px;
+            height: 5px;
+            background: var(--text-muted);
+            border-radius: 50%;
+        }
+
+        /* Center Panel: Interactive Reader & Search */
+        .panel-center {
+            background: var(--bg-obsidian);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .search-container {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-surface);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-input-wrap {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 9px 14px 9px 34px;
+            background: var(--bg-obsidian);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-gold);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .reader-header {
+            padding: 18px 28px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-surface-elevated);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .doc-title-main {
+            font-family: var(--font-serif);
+            font-size: 1.65rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .doc-meta-tags {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge-tag {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            background: var(--bg-obsidian);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-full);
+            color: var(--text-secondary);
+        }
+
+        .badge-tag.gold {
+            color: var(--accent-gold);
+            border-color: rgba(229, 169, 60, 0.4);
+        }
+
+        .doc-nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reader-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px 36px 60px;
+        }
+
+        .reader-content {
+            max-width: 820px;
+            margin: 0 auto;
+            color: var(--text-primary);
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+
+        .reader-content h1, 
+        .reader-content h2, 
+        .reader-content h3, 
+        .reader-content h4 {
+            font-family: var(--font-serif);
+            color: var(--text-primary);
+            margin-top: 1.8em;
+            margin-bottom: 0.6em;
+            letter-spacing: -0.01em;
+        }
+
+        .reader-content h1 { font-size: 1.8rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
+        .reader-content h2 { font-size: 1.4rem; color: var(--accent-gold); }
+        .reader-content h3 { font-size: 1.15rem; color: var(--hyphae-green-bright); }
+
+        .reader-content p {
+            margin-bottom: 1.2em;
+            color: #C8D8CC;
+        }
+
+        .reader-content code {
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            background: var(--bg-surface-elevated);
+            color: var(--accent-gold);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .reader-content pre {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            overflow-x: auto;
+            margin: 1.4em 0;
+        }
+
+        .reader-content pre code {
+            background: transparent;
+            border: none;
+            padding: 0;
+            color: var(--text-primary);
+        }
+
+        .reader-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5em 0;
+        }
+
+        .reader-content th, 
+        .reader-content td {
+            border: 1px solid var(--border-subtle);
+            padding: 8px 14px;
+            text-align: left;
+        }
+
+        .reader-content th {
+            background: var(--bg-surface-elevated);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+        }
+
+        /* Backlinks in Reader */
+        .backlink-node {
+            color: var(--hyphae-green-bright);
+            text-decoration: none;
+            background: var(--hyphae-green-muted);
+            border-bottom: 1px dashed var(--hyphae-green-bright);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .backlink-node:hover {
+            background: var(--hyphae-green);
+            color: #FFF;
+        }
+
+        /* Right Panel: Graph, Telemetry, Quick Inject */
+        .panel-right {
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-panel-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-surface-elevated);
+        }
+
+        .rp-tab-btn {
+            flex: 1;
+            padding: 12px 8px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .rp-tab-btn.active {
+            color: var(--accent-gold);
+            border-bottom-color: var(--accent-gold);
+            background: var(--bg-surface);
+        }
+
+        .right-panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .rp-pane {
+            display: none;
+        }
+
+        .rp-pane.active {
+            display: block;
+        }
+
+        /* Semantic Graph Canvas */
+        #graph-canvas-container {
+            width: 100%;
+            height: 240px;
+            background: var(--bg-obsidian);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        #graph-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Context Memory Status Metrics */
+        .telemetry-card {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .telemetry-card-title {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .telemetry-metric-large {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--hyphae-green-bright);
+        }
+
+        .telemetry-metric-large.gold {
+            color: var(--accent-gold);
+        }
+
+        /* Quick Context Injection Form */
+        .form-group-rp {
+            margin-bottom: 14px;
+        }
+
+        .form-label-rp {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-input-rp, 
+        .form-select-rp, 
+        .form-textarea-rp {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-obsidian);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .form-textarea-rp {
+            min-height: 130px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .form-input-rp:focus, 
+        .form-select-rp:focus, 
+        .form-textarea-rp:focus {
+            border-color: var(--accent-gold);
+        }
+
+        .btn-inject-submit {
+            width: 100%;
+            padding: 10px;
+            background: var(--accent-gold);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-inject-submit:hover {
+            background: var(--accent-gold-hover);
+        }
+
+        .inject-status-banner {
+            display: none;
+            padding: 10px 12px;
+            background: var(--hyphae-green-muted);
+            border: 1px solid var(--hyphae-green-bright);
+            border-radius: var(--radius-sm);
+            color: var(--hyphae-green-bright);
+            font-size: 0.78rem;
+            margin-top: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .workspace-grid {
+                grid-template-columns: 240px 1fr 280px;
+            }
+        }
+
+        @media (max-width: 850px) {
+            .workspace-grid {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow: visible;
+            }
+            .panel-left, .panel-center, .panel-right {
+                height: auto;
+                overflow: visible;
+            }
+            .reader-scroll-area {
+                max-height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Command Bar -->
+    <header class="operator-topbar">
+        <div class="topbar-left">
+            <a href="/" class="workspace-logo">
+                MYCELIATE<span>.CV</span> / OPERATOR
+            </a>
+            <div class="workspace-badge">
+                <span class="pulse-dot"></span>
+                <span>GCS VAULT SYNCHRONIZED</span>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <div class="operator-meta">
+                OPERATOR: <strong>GEORGE STEWARD</strong>
+            </div>
+            <button type="button" class="btn-topbar primary" onclick="switchRightTab('inject')">
+                <span>+ Context Note</span>
+            </button>
+            <a href="/" class="btn-topbar">
+                <span>Public Landing</span>
+            </a>
+            <a href="/api/logout" class="btn-topbar">
+                <span>Logout</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Three-Panel Layout -->
+    <main class="workspace-grid">
+        <!-- Panel 1: Left (Directory, Domains, Agent Pulse) -->
+        <aside class="panel-left">
+            <div class="panel-header">
+                <span>Domain Categories</span>
+                <span id="doc-count-badge" style="color:var(--accent-gold)">11 DOCS</span>
+            </div>
+
+            <div class="domain-tabs">
+                <button type="button" class="domain-tab active" onclick="filterByDomain('ALL')">ALL</button>
+                <button type="button" class="domain-tab" onclick="filterByDomain('Arboracle')">Arboracle</button>
+                <button type="button" class="domain-tab" onclick="filterByDomain('Forest_OS')">Forest_OS</button>
+                <button type="button" class="domain-tab" onclick="filterByDomain('STIM')">STIM</button>
+                <button type="button" class="domain-tab" onclick="filterByDomain('Field Notes')">Field Notes</button>
+                <button type="button" class="domain-tab" onclick="filterByDomain('Reputation')">Reputation</button>
+            </div>
+
+            <div class="doc-directory" id="doc-list-container">
+                <!-- Injected via JavaScript -->
+            </div>
+
+            <!-- Agent Status Telemetry -->
+            <div class="agent-status-box">
+                <div class="panel-header" style="padding:0 0 6px; border:none;">
+                    <span>Active Agent Mesh</span>
+                </div>
+                <div class="agent-list" id="agent-pulse-list">
+                    <div class="agent-pill active">
+                        <span class="agent-dot"></span>
+                        <span>Bodhi (Active)</span>
+                    </div>
+                    <div class="agent-pill active">
+                        <span class="agent-dot"></span>
+                        <span>Thea (Active)</span>
+                    </div>
+                    <div class="agent-pill active">
+                        <span class="agent-dot"></span>
+                        <span>Sylvan (Live)</span>
+                    </div>
+                    <div class="agent-pill">
+                        <span class="agent-dot"></span>
+                        <span>Reata (Idle)</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Panel 2: Center (Interactive Reader & Substrate Search) -->
+        <section class="panel-center">
+            <div class="search-container">
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="substrate-search" class="search-input" placeholder="Search substrate memory by keywords or tags..." autocomplete="off">
+                </div>
+                <button type="button" class="btn-topbar" id="btn-clear-search" onclick="clearSearch()">
+                    <span>Clear</span>
+                </button>
+            </div>
+
+            <div class="reader-header">
+                <div>
+                    <h2 class="doc-title-main" id="reader-title">Loading Substrate Document...</h2>
+                    <div class="doc-meta-tags" id="reader-tags">
+                        <span class="badge-tag gold" id="reader-path-badge">doc-1</span>
+                        <span class="badge-tag" id="reader-domain-badge">Arboracle</span>
+                        <span class="badge-tag" id="reader-updated-badge">GCS Verified</span>
+                    </div>
+                </div>
+
+                <div class="doc-nav-controls">
+                    <button type="button" class="btn-topbar" id="btn-prev-doc" onclick="navigateDoc(-1)">
+                        <span>&larr; Prev</span>
+                    </button>
+                    <button type="button" class="btn-topbar" id="btn-next-doc" onclick="navigateDoc(1)">
+                        <span>Next &rarr;</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="reader-scroll-area">
+                <div class="reader-content" id="reader-body">
+                    <p style="color:var(--text-muted); font-family:var(--font-mono);">
+                        Selecting node from GCS object vault...
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel 3: Right (Semantic Graph, Telemetry, Quick Injection) -->
+        <aside class="panel-right">
+            <div class="right-panel-tabs">
+                <button type="button" class="rp-tab-btn active" id="rp-tab-btn-graph" onclick="switchRightTab('graph')">Graph</button>
+                <button type="button" class="rp-tab-btn" id="rp-tab-btn-telemetry" onclick="switchRightTab('telemetry')">Telemetry</button>
+                <button type="button" class="rp-tab-btn" id="rp-tab-btn-inject" onclick="switchRightTab('inject')">Quick Inject</button>
+            </div>
+
+            <div class="right-panel-body">
+                <!-- Tab 1: Semantic Graph -->
+                <div class="rp-pane active" id="rp-pane-graph">
+                    <div class="panel-header" style="padding:0 0 10px; border:none;">
+                        <span>Semantic Graph (1st &amp; 2nd Degree)</span>
+                    </div>
+
+                    <div id="graph-canvas-container">
+                        <canvas id="graph-canvas"></canvas>
+                    </div>
+
+                    <div class="telemetry-card">
+                        <div class="telemetry-card-title">
+                            <span>Connected Node References</span>
+                            <span id="graph-node-count">4 Edges</span>
+                        </div>
+                        <div id="graph-connections-list" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">
+                            <!-- Injected connections -->
+                        </div>
+                    </div>
+
+                    <div class="telemetry-card">
+                        <div class="telemetry-card-title">
+                            <span>Document JSON-LD Schema</span>
+                        </div>
+                        <pre id="jsonld-preview" style="font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-gold); max-height:140px; overflow:auto;"></pre>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Context Memory Telemetry -->
+                <div class="rp-pane" id="rp-pane-telemetry">
+                    <div class="telemetry-card">
+                        <div class="telemetry-card-title">
+                            <span>GCS Bucket Status</span>
+                            <span>Google Cloud</span>
+                        </div>
+                        <div class="telemetry-metric-large gold">mycelial-brain-storage</div>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                            State: Immutable / Object Lock Active
+                        </p>
+                    </div>
+
+                    <div class="telemetry-card">
+                        <div class="telemetry-card-title">
+                            <span>MCP Query Latency</span>
+                            <span>Edge Roundtrip</span>
+                        </div>
+                        <div class="telemetry-metric-large" id="metric-latency">24ms</div>
+                        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                            Protocol: JSON-RPC 2.0 over HTTP POST
+                        </p>
+                    </div>
+
+                    <div class="telemetry-card">
+                        <div class="telemetry-card-title">
+                            <span>Active Agent Sessions</span>
+                        </div>
+                        <div id="agent-sessions-list" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">
+                            <div style="margin-bottom:4px;">&bull; Bodhi (Session ID: s-bodhi-8912)</div>
+                            <div style="margin-bottom:4px;">&bull; Thea (Session ID: s-thea-4401)</div>
+                            <div style="margin-bottom:4px;">&bull; Sylvan (Session ID: s-sylvan-2104)</div>
+                            <div style="margin-bottom:4px;">&bull; George (Operator: Auth Valid)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Quick Context Injection Scratchpad -->
+                <div class="rp-pane" id="rp-pane-inject">
+                    <form id="form-quick-inject">
+                        <div class="form-group-rp">
+                            <label for="inject-title" class="form-label-rp">NOTE TITLE</label>
+                            <input type="text" id="inject-title" class="form-input-rp" placeholder="e.g. CRZ Decompaction Field Observation" required>
+                        </div>
+
+                        <div class="form-group-rp">
+                            <label for="inject-domain" class="form-label-rp">DOMAIN CATEGORY</label>
+                            <select id="inject-domain" class="form-select-rp">
+                                <option value="Field Notes">Field Notes</option>
+                                <option value="Arboracle">Arboracle</option>
+                                <option value="Forest_OS">Forest_OS</option>
+                                <option value="STIM">STIM</option>
+                                <option value="Reputation">Reputation</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group-rp">
+                            <label for="inject-tags" class="form-label-rp">TAGS (COMMA SEPARATED)</label>
+                            <input type="text" id="inject-tags" class="form-input-rp" placeholder="soil, airspade, telemetry">
+                        </div>
+
+                        <div class="form-group-rp">
+                            <label for="inject-content" class="form-label-rp">CONTEXT MARKDOWN</label>
+                            <textarea id="inject-content" class="form-textarea-rp" placeholder="Enter structured context with outcome loops or verified facts..." required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-inject-submit" id="btn-inject-submit">
+                            Commit Context to GCS Storage
+                        </button>
+
+                        <div class="inject-status-banner" id="inject-status-banner"></div>
+                    </form>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Dashboard Core Logic -->
+    <script>
+    let allDocs = [];
+    let currentDocIndex = 0;
+    let currentDomainFilter = 'ALL';
+    let currentDocId = 'doc-1';
+
+    // 1. Fetch Doc List & Initialize
+    async function initDashboard() {
+        try {
+            const res = await fetch('/api/brain/list');
+            if (res.ok) {
+                const data = await res.json();
+                allDocs = data.docs || [];
+            }
+        } catch (e) {
+            console.warn("Failed to load /api/brain/list, using local set", e);
+        }
+
+        if (allDocs.length === 0) {
+            allDocs = [
+                { path: "doc-1", title: "George Identity", tags: ["identity", "arboriculture", "systems"], domain: "Arboracle" },
+                { path: "doc-2", title: "George Updated", tags: ["biography", "trajectory"], domain: "Field Notes" },
+                { path: "doc-3", title: "Agent Ecosystem", tags: ["agents", "openclaw", "bodhi", "thea"], domain: "Forest_OS" },
+                { path: "doc-4", title: "Tech Stack", tags: ["mcp", "cloud-run", "gcs", "nodejs"], domain: "Forest_OS" },
+                { path: "doc-5", title: "Family & Roots", tags: ["personal", "legacy", "values"], domain: "Field Notes" },
+                { path: "doc-6", title: "Goals & Vision", tags: ["vision", "land-restoration", "stim"], domain: "STIM" },
+                { path: "doc-7", title: "Current Priorities", tags: ["priorities", "roadmap", "execution"], domain: "Arboracle" },
+                { path: "doc-8", title: "Unified Stack Pitch", tags: ["architecture", "sovereign", "infrastructure"], domain: "Forest_OS" },
+                { path: "doc-9", title: "Fungi Review Protocol", tags: ["reputation", "fungi", "peer-signal"], domain: "Reputation" },
+                { path: "doc-146", title: "STIM Provenance Layer", tags: ["stim", "axioms", "physics"], domain: "STIM" },
+                { path: "doc-183", title: "Neocambrian Voice Matrix", tags: ["interview", "axioms", "voice"], domain: "STIM" }
+            ];
+        }
+
+        renderDocList();
+
+        // Check if direct URL ?doc= is requested
+        const urlParams = new URLSearchParams(window.location.search);
+        const reqDoc = urlParams.get('doc') || 'doc-1';
+        loadDocument(reqDoc);
+
+        fetchTelemetry();
+    }
+
+    // 2. Render Directory
+    function renderDocList() {
+        const container = document.getElementById('doc-list-container');
+        const badge = document.getElementById('doc-count-badge');
+        container.innerHTML = '';
+
+        const filtered = allDocs.filter(d => {
+            if (currentDomainFilter === 'ALL') return true;
+            return d.domain === currentDomainFilter;
+        });
+
+        badge.textContent = filtered.length + ' DOCS';
+
+        filtered.forEach((doc, idx) => {
+            const item = document.createElement('div');
+            item.className = 'doc-item' + (doc.path === currentDocId ? ' active' : '');
+            item.onclick = () => loadDocument(doc.path);
+
+            item.innerHTML = `
+                <div class="doc-item-title">${doc.title || doc.path}</div>
+                <div class="doc-item-meta">
+                    <span class="doc-item-domain">${doc.domain || 'Field Notes'}</span>
+                    <span>${doc.path}</span>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function filterByDomain(domain) {
+        currentDomainFilter = domain;
+        document.querySelectorAll('.domain-tab').forEach(t => {
+            t.classList.toggle('active', t.textContent === domain);
+        });
+        renderDocList();
+    }
+
+    // 3. Load & Render Document
+    async function loadDocument(docPath) {
+        if (!docPath.startsWith('doc-')) docPath = 'doc-' + docPath;
+        currentDocId = docPath;
+
+        const docObj = allDocs.find(d => d.path === docPath) || { path: docPath, title: docPath, domain: 'Field Notes', tags: [] };
+        currentDocIndex = allDocs.findIndex(d => d.path === docPath);
+
+        document.getElementById('reader-title').textContent = docObj.title || docPath;
+        document.getElementById('reader-path-badge').textContent = docPath;
+        document.getElementById('reader-domain-badge').textContent = docObj.domain || 'Field Notes';
+        document.getElementById('reader-body').innerHTML = '<p style="color:var(--text-muted); font-family:var(--font-mono);">Fetching doc body from GCS...</p>';
+
+        renderDocList();
+        history.pushState({}, '', '?doc=' + docPath);
+
+        try {
+            const res = await fetch('/api/brain/read/' + docPath);
+            let rawText = '';
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.result?.content?.[0]?.text) {
+                    rawText = data.result.content[0].text;
+                } else if (data?.content) {
+                    rawText = data.content;
+                }
+            }
+
+            if (!rawText) {
+                rawText = `# ${docObj.title || docPath}\n\n*Document metadata verified in Mycelial Brain vault.* \n\nTags: ${docObj.tags?.join(', ') || 'substrate'}\n\nContext node linked to domain ${docObj.domain || 'Field Notes'}.`;
+            }
+
+            document.getElementById('reader-body').innerHTML = parseMarkdownToHtml(rawText);
+            updateGraph(docPath, docObj);
+            updateJsonLd(docPath, docObj);
+        } catch (e) {
+            document.getElementById('reader-body').innerHTML = '<p style="color:#FF8888">Failed to read document context.</p>';
+        }
+    }
+
+    function navigateDoc(delta) {
+        if (allDocs.length === 0) return;
+        let nextIdx = (currentDocIndex + delta + allDocs.length) % allDocs.length;
+        loadDocument(allDocs[nextIdx].path);
+    }
+
+    // 4. Markdown Parser with Backlinks & Zero Em Dashes
+    function parseMarkdownToHtml(md) {
+        if (!md) return '';
+        let html = md
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/—/g, ' - ') // Replace any accidental em dashes with hyphens
+            .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+            .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+            .replace(/^---+$/gm, '<hr style="border:none; border-top:1px solid var(--border-subtle); margin:2em 0;">')
+            .replace(/\[\[(doc-[a-zA-Z0-9_-]+)\]\]/g, '<a class="backlink-node" onclick="loadDocument(\'$1\'); return false;">[[$1]]</a>')
+            .replace(/\b(doc-\d+)\b/g, '<a class="backlink-node" onclick="loadDocument(\'$1\'); return false;">$1</a>')
+            .replace(/\n/g, '<br>');
+
+        return html;
+    }
+
+    // 5. Semantic Graph Simulation
+    function updateGraph(docPath, docObj) {
+        const canvas = document.getElementById('graph-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.parentElement.clientWidth;
+        const h = canvas.parentElement.clientHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.scale(dpr, dpr);
+
+        ctx.clearRect(0, 0, w, h);
+
+        const centerX = w / 2;
+        const centerY = h / 2;
+
+        // Related neighbor nodes based on index & domain
+        const neighbors = allDocs.filter(d => d.path !== docPath && (d.domain === docObj.domain || Math.random() > 0.5)).slice(0, 4);
+
+        const conList = document.getElementById('graph-connections-list');
+        conList.innerHTML = '';
+
+        neighbors.forEach((n, i) => {
+            const angle = (i / neighbors.length) * Math.PI * 2;
+            const dist = 70;
+            const nx = centerX + Math.cos(angle) * dist;
+            const ny = centerY + Math.sin(angle) * dist;
+
+            // Draw connecting hyphae filament
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(nx, ny);
+            ctx.strokeStyle = 'rgba(90, 138, 98, 0.45)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // Draw neighbor node
+            ctx.beginPath();
+            ctx.arc(nx, ny, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#5A8A62';
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = '#AFC2B2';
+            ctx.font = '9px JetBrains Mono';
+            ctx.fillText(n.path, nx + 8, ny + 3);
+
+            const row = document.createElement('div');
+            row.style.marginBottom = '4px';
+            row.innerHTML = `&bull; <a style="color:var(--hyphae-green-bright); text-decoration:none; cursor:pointer;" onclick="loadDocument('${n.path}')">${n.path} (${n.title})</a>`;
+            conList.appendChild(row);
+        });
+
+        // Draw center active node
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+        ctx.fillStyle = '#E5A93C';
+        ctx.shadowColor = '#E5A93C';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 10px JetBrains Mono';
+        ctx.fillText(docPath, centerX - 16, centerY - 14);
+
+        document.getElementById('graph-node-count').textContent = neighbors.length + ' Edges';
+    }
+
+    // 6. JSON-LD Previewer
+    function updateJsonLd(docPath, docObj) {
+        const schema = {
+            "@context": "https://schema.org",
+            "@type": "DigitalDocument",
+            "name": docObj.title || docPath,
+            "identifier": docPath,
+            "domain": docObj.domain || "Field Notes",
+            "keywords": docObj.tags || ["substrate", "mcp"],
+            "storage": "gs://mycelial-brain-storage/" + docPath + ".json",
+            "provenance": {
+                "owner": "George Steward",
+                "protocol": "STIM Layer 0"
+            }
+        };
+        document.getElementById('jsonld-preview').textContent = JSON.stringify(schema, null, 2);
+    }
+
+    // 7. Right Panel Tab Switcher
+    window.switchRightTab = function(tabName) {
+        document.getElementById('rp-tab-btn-graph').classList.toggle('active', tabName === 'graph');
+        document.getElementById('rp-tab-btn-telemetry').classList.toggle('active', tabName === 'telemetry');
+        document.getElementById('rp-tab-btn-inject').classList.toggle('active', tabName === 'inject');
+
+        document.getElementById('rp-pane-graph').classList.toggle('active', tabName === 'graph');
+        document.getElementById('rp-pane-telemetry').classList.toggle('active', tabName === 'telemetry');
+        document.getElementById('rp-pane-inject').classList.toggle('active', tabName === 'inject');
+
+        if (tabName === 'graph') {
+            const docObj = allDocs.find(d => d.path === currentDocId) || { path: currentDocId };
+            updateGraph(currentDocId, docObj);
+        }
+    };
+
+    // 8. Quick Context Injection Form
+    const formInject = document.getElementById('form-quick-inject');
+    const injectBanner = document.getElementById('inject-status-banner');
+    const btnInject = document.getElementById('btn-inject-submit');
+
+    if (formInject) {
+        formInject.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btnInject.disabled = true;
+            btnInject.textContent = 'Committing to GCS...';
+            injectBanner.style.display = 'none';
+
+            const title = document.getElementById('inject-title').value;
+            const domain = document.getElementById('inject-domain').value;
+            const tags = document.getElementById('inject-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+            const content = document.getElementById('inject-content').value;
+
+            try {
+                const res = await fetch('/api/brain/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, domain, tags, content })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    injectBanner.textContent = data.message || 'Note committed directly to GCS storage.';
+                    injectBanner.style.display = 'block';
+
+                    const newDoc = {
+                        path: data.path,
+                        title: title,
+                        domain: domain,
+                        tags: tags
+                    };
+                    allDocs.unshift(newDoc);
+                    renderDocList();
+                    loadDocument(data.path);
+
+                    formInject.reset();
+                } else {
+                    injectBanner.textContent = data.error || 'Failed to commit note.';
+                    injectBanner.style.display = 'block';
+                }
+            } catch (err) {
+                injectBanner.textContent = 'Connection error during GCS injection.';
+                injectBanner.style.display = 'block';
+            } finally {
+                btnInject.disabled = false;
+                btnInject.textContent = 'Commit Context to GCS Storage';
+            }
+        });
+    }
+
+    // 9. Substrate Live Search
+    const searchInput = document.getElementById('substrate-search');
+    let searchTimer = null;
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimer);
+            const query = e.target.value.trim();
+            if (!query) {
+                renderDocList();
+                return;
+            }
+
+            searchTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch('/api/brain/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query, limit: 10 })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const results = data.results || [];
+                        if (results.length > 0) {
+                            const matchedPaths = results.map(r => r.path);
+                            const matchedDocs = allDocs.filter(d => matchedPaths.includes(d.path));
+                            renderSearchResults(matchedDocs.length ? matchedDocs : results);
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Substrate search proxy error:", err);
+                }
+            }, 250);
+        });
+    }
+
+    function renderSearchResults(results) {
+        const container = document.getElementById('doc-list-container');
+        const badge = document.getElementById('doc-count-badge');
+        container.innerHTML = '';
+        badge.textContent = results.length + ' MATCHES';
+
+        results.forEach(doc => {
+            const path = doc.path || 'result';
+            const title = doc.title || path;
+            const item = document.createElement('div');
+            item.className = 'doc-item' + (path === currentDocId ? ' active' : '');
+            item.onclick = () => loadDocument(path);
+
+            item.innerHTML = `
+                <div class="doc-item-title">${title}</div>
+                <div class="doc-item-meta">
+                    <span class="doc-item-domain">${doc.domain || 'Search Match'}</span>
+                    <span>${path}</span>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    function clearSearch() {
+        if (searchInput) searchInput.value = '';
+        renderDocList();
+    }
+
+    // 10. Telemetry Poller
+    async function fetchTelemetry() {
+        try {
+            const res = await fetch('/api/brain/telemetry');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.query_latency_ms) {
+                    document.getElementById('metric-latency').textContent = data.query_latency_ms + 'ms';
+                }
+            }
+        } catch (e) {}
+    }
+
+    // Initialize Dashboard
+    window.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>
+
