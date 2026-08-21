@@ -148,11 +148,15 @@ if (process.env.GEMINI_API_KEY) {
 
 app.use(express.json());
 
-// Enable CORS for all routes (including /query, /api/*, /brain)
+// Enable CORS and Security Headers
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('X-Frame-Options', 'SAMEORIGIN');
+
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
     }
@@ -173,23 +177,57 @@ const activeOperatorKeys = new Set([
 
 // Authentication middleware protecting operator pages and private API routes
 function authMiddleware(req, res, next) {
+    // Redirect HTTP to HTTPS behind Cloud Run proxy
+    if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] === 'http') {
+        return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+
     const publicPaths = [
         '/',
         '/index.html',
+        '/pricing',
+        '/pricing.html',
+        '/review',
+        '/review.html',
+        '/stim',
+        '/stim.html',
         '/login',
         '/login.html',
-        '/api/login',
-        '/api/auth',
-        '/api/auth/reset',
-        '/api/auth/verify',
-        '/_health',
+        '/signup',
+        '/signup.html',
+        '/interview',
+        '/interview.html',
+        '/profile',
+        '/profile.html',
+        '/george',
+        '/script.js',
         '/style.css',
         '/stim.css',
         '/manifest.json',
         '/favicon.ico',
-        '/robots.txt'
+        '/robots.txt',
+        '/_health',
+        '/api/login',
+        '/api/auth',
+        '/api/auth/reset',
+        '/api/auth/verify',
+        '/api/query',
+        '/query'
     ];
-    if (publicPaths.includes(req.path) || req.path.startsWith('/uploads/') || req.path.startsWith('/public/')) {
+
+    if (
+        publicPaths.includes(req.path) ||
+        req.path.startsWith('/uploads/') ||
+        req.path.startsWith('/public/') ||
+        req.path.endsWith('.css') ||
+        req.path.endsWith('.js') ||
+        req.path.endsWith('.png') ||
+        req.path.endsWith('.jpg') ||
+        req.path.endsWith('.svg') ||
+        req.path.endsWith('.ico') ||
+        req.path.endsWith('.json') ||
+        req.path.endsWith('.woff2')
+    ) {
         return next();
     }
 
@@ -1522,6 +1560,14 @@ app.get('/playback/:sessionId', (req, res) => {
 
 app.get('/interview', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'interview.html'));
+});
+
+// Fallback handler: serve index.html for any unhandled GET route
+app.use((req, res) => {
+    if (req.method === 'GET' && req.accepts('html')) {
+        return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
+    res.status(404).json({ error: 'Endpoint not found' });
 });
 
 app.listen(PORT, () => {
