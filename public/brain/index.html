@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Myceliate Operator Workspace: Neural Dashboard</title>
+    <title>Myceliate Operator Workspace : Neural Dashboard</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --bg-obsidian: #080E0A;
@@ -35,9 +36,9 @@
             --border-bright: rgba(125, 255, 125, 0.35);
             --border-frost: rgba(229, 169, 60, 0.3);
 
-            --font-serif: 'Fraunces', Georgia, serif;
-            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
+            --font-serif: "Fraunces", Georgia, serif;
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: "JetBrains Mono", monospace;
 
             --radius-sm: 6px;
             --radius-md: 10px;
@@ -98,46 +99,20 @@
 
         .workspace-badge {
             font-family: var(--font-mono);
-            font-size: 0.72rem;
-            padding: 3px 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--hyphae-green-bright);
             background: var(--hyphae-green-muted);
             border: 1px solid var(--border-subtle);
+            padding: 2px 8px;
             border-radius: var(--radius-full);
-            color: var(--hyphae-green-bright);
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .pulse-dot {
-            width: 6px;
-            height: 6px;
-            background: var(--hyphae-green-bright);
-            border-radius: 50%;
-            box-shadow: 0 0 6px var(--hyphae-green-bright);
-            animation: pulse-dot 2.5s infinite;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.8); }
+            letter-spacing: 0.05em;
         }
 
         .topbar-right {
             display: flex;
             align-items: center;
             gap: 14px;
-        }
-
-        .operator-meta {
-            font-family: var(--font-mono);
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
-
-        .operator-meta strong {
-            color: var(--accent-gold);
-            font-weight: 500;
         }
 
         .btn-topbar {
@@ -150,9 +125,9 @@
             border-radius: var(--radius-sm);
             color: var(--text-secondary);
             font-family: var(--font-mono);
-            font-size: 0.78rem;
-            text-decoration: none;
+            font-size: 0.75rem;
             cursor: pointer;
+            text-decoration: none;
             transition: all 0.2s ease;
         }
 
@@ -161,26 +136,15 @@
             color: var(--accent-gold);
         }
 
-        .btn-topbar.primary {
-            background: var(--accent-gold);
-            color: var(--text-inverse);
-            border-color: var(--accent-gold);
-            font-weight: 600;
-        }
-
-        .btn-topbar.primary:hover {
-            background: var(--accent-gold-hover);
-        }
-
-        /* Three-Panel Layout */
-        .workspace-grid {
+        /* 3-Panel Main Layout */
+        .workspace-layout {
             display: grid;
-            grid-template-columns: 290px 1fr 340px;
+            grid-template-columns: 280px 1fr 340px;
             height: calc(100vh - var(--topbar-height));
             overflow: hidden;
         }
 
-        /* Left Panel: Directory & Agents */
+        /* Panel 1: Left (Directory & Agent Telemetry) */
         .panel-left {
             background: var(--bg-surface);
             border-right: 1px solid var(--border-subtle);
@@ -192,62 +156,59 @@
         .panel-header {
             padding: 14px 16px;
             border-bottom: 1px solid var(--border-subtle);
-            font-family: var(--font-mono);
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
 
         .domain-tabs {
             display: flex;
-            flex-wrap: wrap;
             gap: 4px;
-            padding: 10px 14px;
+            padding: 10px 12px;
+            background: var(--bg-obsidian);
             border-bottom: 1px solid var(--border-subtle);
-            background: var(--bg-surface-elevated);
+            overflow-x: auto;
         }
 
         .domain-tab {
             padding: 4px 8px;
             background: transparent;
-            border: 1px solid var(--border-subtle);
+            border: 1px solid transparent;
             border-radius: var(--radius-sm);
             color: var(--text-muted);
             font-family: var(--font-mono);
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             cursor: pointer;
+            white-space: nowrap;
             transition: all 0.15s ease;
         }
 
-        .domain-tab:hover {
-            color: var(--text-primary);
-            border-color: var(--hyphae-green);
-        }
-
         .domain-tab.active {
-            background: var(--hyphae-green-muted);
-            border-color: var(--hyphae-green-bright);
-            color: var(--hyphae-green-bright);
-            font-weight: 600;
+            background: var(--bg-surface-elevated);
+            border-color: var(--border-subtle);
+            color: var(--accent-gold);
         }
 
         .doc-directory {
             flex: 1;
             overflow-y: auto;
             padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .doc-item {
             padding: 10px 12px;
             border-radius: var(--radius-sm);
             border: 1px solid transparent;
+            background: transparent;
             cursor: pointer;
-            margin-bottom: 4px;
             transition: all 0.15s ease;
         }
 
@@ -257,58 +218,61 @@
         }
 
         .doc-item.active {
-            background: rgba(229, 169, 60, 0.12);
-            border-color: var(--accent-gold);
+            background: rgba(229, 169, 60, 0.08);
+            border-color: var(--border-frost);
         }
 
         .doc-item-title {
-            font-size: 0.88rem;
             font-weight: 500;
             color: var(--text-primary);
-            margin-bottom: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 0.88rem;
+            margin-bottom: 2px;
         }
 
         .doc-item-meta {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 8px;
             font-family: var(--font-mono);
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             color: var(--text-muted);
         }
 
         .doc-item-domain {
-            color: var(--accent-gold);
+            color: var(--hyphae-green-bright);
         }
 
-        /* Agent Status Monitor */
         .agent-status-box {
-            padding: 14px;
+            padding: 14px 16px;
+            background: var(--bg-surface-elevated);
             border-top: 1px solid var(--border-subtle);
-            background: var(--bg-obsidian);
         }
 
         .agent-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
             margin-top: 8px;
         }
 
         .agent-pill {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 5px 8px;
-            background: var(--bg-surface-elevated);
+            gap: 5px;
+            padding: 3px 8px;
+            background: var(--bg-obsidian);
             border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
+            border-radius: var(--radius-full);
             font-family: var(--font-mono);
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             color: var(--text-secondary);
+        }
+
+        .agent-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--text-muted);
         }
 
         .agent-pill.active .agent-dot {
@@ -316,63 +280,59 @@
             box-shadow: 0 0 6px var(--hyphae-green-bright);
         }
 
-        .agent-dot {
-            width: 5px;
-            height: 5px;
-            background: var(--text-muted);
-            border-radius: 50%;
-        }
-
-        /* Center Panel: Interactive Reader & Search */
+        /* Panel 2: Center (Reader & Search) */
         .panel-center {
             background: var(--bg-obsidian);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            border-right: 1px solid var(--border-subtle);
         }
 
         .search-container {
             padding: 12px 20px;
-            border-bottom: 1px solid var(--border-subtle);
             background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
         .search-input-wrap {
-            position: relative;
             flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            pointer-events: none;
         }
 
         .search-input {
             width: 100%;
-            padding: 9px 14px 9px 34px;
+            padding: 8px 12px 8px 36px;
             background: var(--bg-obsidian);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-sm);
             color: var(--text-primary);
-            font-family: var(--font-mono);
-            font-size: 0.85rem;
+            font-family: var(--font-sans);
+            font-size: 0.88rem;
             outline: none;
             transition: border-color 0.2s ease;
         }
 
         .search-input:focus {
             border-color: var(--accent-gold);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            pointer-events: none;
+            box-shadow: 0 0 10px var(--accent-gold-muted);
         }
 
         .reader-header {
-            padding: 18px 28px 12px;
+            padding: 18px 28px;
             border-bottom: 1px solid var(--border-subtle);
             background: var(--bg-surface-elevated);
             display: flex;
@@ -383,9 +343,10 @@
 
         .doc-title-main {
             font-family: var(--font-serif);
-            font-size: 1.65rem;
-            font-weight: 600;
+            font-size: 1.45rem;
+            font-weight: 700;
             color: var(--text-primary);
+            letter-spacing: -0.01em;
             margin-bottom: 6px;
         }
 
@@ -399,127 +360,120 @@
         .badge-tag {
             font-family: var(--font-mono);
             font-size: 0.72rem;
-            padding: 2px 7px;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
             background: var(--bg-obsidian);
             border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-full);
             color: var(--text-secondary);
         }
 
         .badge-tag.gold {
             color: var(--accent-gold);
-            border-color: rgba(229, 169, 60, 0.4);
+            border-color: var(--border-frost);
+            background: var(--accent-gold-muted);
         }
 
         .doc-nav-controls {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            gap: 6px;
+            flex-shrink: 0;
         }
 
         .reader-scroll-area {
             flex: 1;
             overflow-y: auto;
-            padding: 32px 36px 60px;
+            padding: 36px 40px;
         }
 
         .reader-content {
             max-width: 820px;
             margin: 0 auto;
-            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 1.05rem;
             line-height: 1.8;
-            font-size: 1rem;
+            color: var(--text-primary);
         }
 
-        .reader-content h1, 
-        .reader-content h2, 
-        .reader-content h3, 
-        .reader-content h4 {
+        .reader-content h1, .reader-content h2, .reader-content h3 {
             font-family: var(--font-serif);
             color: var(--text-primary);
-            margin-top: 1.8em;
-            margin-bottom: 0.6em;
-            letter-spacing: -0.01em;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
         }
 
-        .reader-content h1 { font-size: 1.8rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
-        .reader-content h2 { font-size: 1.4rem; color: var(--accent-gold); }
-        .reader-content h3 { font-size: 1.15rem; color: var(--hyphae-green-bright); }
-
-        .reader-content p {
-            margin-bottom: 1.2em;
-            color: #C8D8CC;
-        }
-
-        .reader-content code {
-            font-family: var(--font-mono);
-            font-size: 0.85em;
+        .reader-content h1 { font-size: 1.9rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; }
+        .reader-content h2 { font-size: 1.45rem; }
+        .reader-content h3 { font-size: 1.2rem; }
+        .reader-content p { margin-bottom: 1.2rem; }
+        .reader-content ul, .reader-content ol { margin: 0.8rem 0 1.2rem 1.8rem; }
+        .reader-content li { margin-bottom: 0.4rem; }
+        .reader-content blockquote {
             background: var(--bg-surface-elevated);
-            color: var(--accent-gold);
-            padding: 2px 6px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-subtle);
+            border-left: 4px solid var(--accent-gold);
+            padding: 14px 18px;
+            border-radius: 6px;
+            margin: 1.4rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
         }
-
         .reader-content pre {
-            background: var(--bg-surface);
+            background: #050806;
             border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
+            border-radius: 8px;
             padding: 16px;
             overflow-x: auto;
-            margin: 1.4em 0;
+            margin: 1.4rem 0;
+            position: relative;
         }
-
-        .reader-content pre code {
-            background: transparent;
-            border: none;
-            padding: 0;
-            color: var(--text-primary);
+        .reader-content code {
+            font-family: var(--font-mono);
+            font-size: 0.88em;
+            color: var(--accent-gold);
         }
-
         .reader-content table {
             width: 100%;
             border-collapse: collapse;
-            margin: 1.5em 0;
-        }
-
-        .reader-content th, 
-        .reader-content td {
+            margin: 1.6rem 0;
             border: 1px solid var(--border-subtle);
-            padding: 8px 14px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .reader-content th, .reader-content td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-subtle);
             text-align: left;
         }
-
         .reader-content th {
             background: var(--bg-surface-elevated);
-            font-family: var(--font-mono);
-            font-size: 0.8rem;
             color: var(--accent-gold);
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
         }
 
-        /* Backlinks in Reader */
         .backlink-node {
-            color: var(--hyphae-green-bright);
-            text-decoration: none;
-            background: var(--hyphae-green-muted);
-            border-bottom: 1px dashed var(--hyphae-green-bright);
-            padding: 1px 4px;
-            border-radius: 3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: var(--accent-gold-muted);
+            border: 1px solid var(--border-frost);
+            border-radius: 4px;
+            color: var(--accent-gold);
             font-family: var(--font-mono);
-            font-size: 0.9em;
+            font-size: 0.85em;
+            text-decoration: none;
             cursor: pointer;
             transition: all 0.15s ease;
         }
 
         .backlink-node:hover {
-            background: var(--hyphae-green);
-            color: #FFF;
+            background: var(--accent-gold);
+            color: var(--text-inverse);
         }
 
-        /* Right Panel: Graph, Telemetry, Quick Inject */
+        /* Panel 3: Right (Graph, Telemetry, Inject) */
         .panel-right {
             background: var(--bg-surface);
-            border-left: 1px solid var(--border-subtle);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -528,7 +482,7 @@
         .right-panel-tabs {
             display: flex;
             border-bottom: 1px solid var(--border-subtle);
-            background: var(--bg-surface-elevated);
+            background: var(--bg-obsidian);
         }
 
         .rp-tab-btn {
@@ -560,20 +514,21 @@
 
         .rp-pane {
             display: none;
+            flex-direction: column;
+            gap: 14px;
         }
 
         .rp-pane.active {
-            display: block;
+            display: flex;
         }
 
-        /* Semantic Graph Canvas */
         #graph-canvas-container {
             width: 100%;
-            height: 240px;
+            height: 220px;
             background: var(--bg-obsidian);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
-            margin-bottom: 16px;
+            overflow: hidden;
             position: relative;
         }
 
@@ -583,72 +538,73 @@
             display: block;
         }
 
-        /* Context Memory Status Metrics */
         .telemetry-card {
             background: var(--bg-surface-elevated);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
             padding: 14px;
-            margin-bottom: 12px;
         }
 
         .telemetry-card-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             font-family: var(--font-mono);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: var(--text-muted);
             text-transform: uppercase;
+            letter-spacing: 0.05em;
             margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
         }
 
         .telemetry-metric-large {
             font-family: var(--font-mono);
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--hyphae-green-bright);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
         }
 
         .telemetry-metric-large.gold {
             color: var(--accent-gold);
+            font-size: 1rem;
+            word-break: break-all;
         }
 
-        /* Quick Context Injection Form */
+        /* Form Quick Inject */
         .form-group-rp {
-            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
         }
 
         .form-label-rp {
-            display: block;
             font-family: var(--font-mono);
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             color: var(--text-secondary);
-            margin-bottom: 6px;
+            letter-spacing: 0.04em;
         }
 
-        .form-input-rp, 
-        .form-select-rp, 
-        .form-textarea-rp {
+        .form-input-rp, .form-select-rp, .form-textarea-rp {
             width: 100%;
-            padding: 8px 12px;
+            padding: 8px 10px;
             background: var(--bg-obsidian);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-sm);
             color: var(--text-primary);
             font-family: var(--font-mono);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             outline: none;
         }
 
         .form-textarea-rp {
-            min-height: 130px;
+            min-height: 100px;
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
             resize: vertical;
-            line-height: 1.5;
         }
 
-        .form-input-rp:focus, 
-        .form-select-rp:focus, 
-        .form-textarea-rp:focus {
+        .form-input-rp:focus, .form-textarea-rp:focus {
             border-color: var(--accent-gold);
         }
 
@@ -659,287 +615,202 @@
             color: var(--text-inverse);
             border: none;
             border-radius: var(--radius-sm);
-            font-family: var(--font-sans);
-            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-inject-submit:hover {
-            background: var(--accent-gold-hover);
         }
 
         .inject-status-banner {
             display: none;
-            padding: 10px 12px;
+            margin-top: 10px;
+            padding: 8px 10px;
             background: var(--hyphae-green-muted);
             border: 1px solid var(--hyphae-green-bright);
             border-radius: var(--radius-sm);
             color: var(--hyphae-green-bright);
-            font-size: 0.78rem;
-            margin-top: 10px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
         }
 
-        /* Responsive */
-        @media (max-width: 1100px) {
-            .workspace-grid {
-                grid-template-columns: 240px 1fr 280px;
-            }
+        /* Spotlight Modal */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(4, 8, 5, 0.75);
+            backdrop-filter: blur(6px);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
         }
 
-        @media (max-width: 850px) {
-            .workspace-grid {
-                grid-template-columns: 1fr;
-                height: auto;
-                overflow: visible;
-            }
-            .panel-left, .panel-center, .panel-right {
-                height: auto;
-                overflow: visible;
-            }
-            .reader-scroll-area {
-                max-height: 60vh;
-            }
+        .modal-backdrop.open, .modal-backdrop.active {
+            opacity: 1;
+            visibility: visible;
         }
-    
-    /* Spotlight Dialog */
-    .spotlight-dialog {
-        width: 90%;
-        max-width: 680px;
-        background: var(--bg-surface-elevated);
-        border: 1px solid var(--border-frost);
-        border-radius: 14px;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px var(--accent-gold-glow);
-        margin: 80px auto;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        animation: spotlightFadeIn 0.2s ease-out;
-    }
-    @keyframes spotlightFadeIn {
-        from { opacity: 0; transform: scale(0.96); }
-        to { opacity: 1; transform: scale(1); }
-    }
-    .spotlight-header {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--border-subtle);
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        background: var(--bg-surface);
-    }
-    .spotlight-header input {
-        flex: 1;
-        background: transparent;
-        border: none;
-        outline: none;
-        color: var(--text-primary);
-        font-family: var(--font-sans);
-        font-size: 1.05rem;
-    }
-    .spotlight-kbd {
-        font-family: var(--font-mono);
-        font-size: 0.7rem;
-        background: rgba(0,0,0,0.5);
-        border: 1px solid var(--border-subtle);
-        padding: 2px 6px;
-        border-radius: 4px;
-        color: var(--text-muted);
-    }
-    .spotlight-results {
-        max-height: 420px;
-        overflow-y: auto;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-    .spotlight-item {
-        padding: 12px 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        border: 1px solid transparent;
-        background: rgba(8, 14, 10, 0.4);
-    }
-    .spotlight-item:hover, .spotlight-item.selected {
-        background: rgba(229, 169, 60, 0.12);
-        border-color: var(--accent-gold);
-    }
-    .spotlight-item-title {
-        font-family: var(--font-sans);
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .spotlight-item-badge {
-        font-family: var(--font-mono);
-        font-size: 0.7rem;
-        color: var(--accent-gold);
-        background: var(--accent-gold-muted);
-        padding: 2px 6px;
-        border-radius: 4px;
-    }
-    .spotlight-item-preview {
-        font-size: 0.82rem;
-        color: var(--text-secondary);
-        margin-top: 4px;
-        line-height: 1.5;
-    }
-    .spotlight-item-preview mark {
-        background: rgba(229, 169, 60, 0.35);
-        color: var(--text-primary);
-        padding: 0 3px;
-        border-radius: 2px;
-    }
-    .spotlight-empty {
-        text-align: center;
-        padding: 30px;
-        color: var(--text-muted);
-        font-size: 0.9rem;
-    }
-    .spotlight-footer {
-        padding: 10px 18px;
-        background: var(--bg-surface);
-        border-top: 1px solid var(--border-subtle);
-        display: flex;
-        gap: 16px;
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        color: var(--text-muted);
-    }
-    .spotlight-footer kbd {
-        background: rgba(0,0,0,0.4);
-        padding: 1px 4px;
-        border-radius: 3px;
-        border: 1px solid var(--border-subtle);
-        color: var(--accent-gold);
-    }
 
-    /* Enhanced Reader Typography */
-    .reader-body {
-        font-family: var(--font-sans);
-        font-size: 1.05rem;
-        line-height: 1.8;
-        color: var(--text-primary);
-    }
-    .reader-body h1, .reader-body h2, .reader-body h3 {
-        font-family: var(--font-serif);
-        color: var(--text-primary);
-        margin-top: 1.8rem;
-        margin-bottom: 0.8rem;
-        letter-spacing: -0.01em;
-    }
-    .reader-body h1 { font-size: 1.8rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem; }
-    .reader-body h2 { font-size: 1.45rem; }
-    .reader-body h3 { font-size: 1.2rem; }
-    .reader-body p { margin-bottom: 1.2rem; }
-    .reader-body ul, .reader-body ol { margin: 0.8rem 0 1.2rem 1.6rem; }
-    .reader-body li { margin-bottom: 0.4rem; }
-    .reader-body blockquote {
-        background: var(--bg-surface-elevated);
-        border-left: 4px solid var(--accent-gold);
-        padding: 14px 18px;
-        border-radius: 6px;
-        margin: 1.4rem 0;
-        font-style: italic;
-        color: var(--text-secondary);
-    }
-    .reader-body pre {
-        background: #050806;
-        border: 1px solid var(--border-subtle);
-        border-radius: 8px;
-        padding: 16px;
-        overflow-x: auto;
-        margin: 1.4rem 0;
-        position: relative;
-    }
-    .reader-body code {
-        font-family: var(--font-mono);
-        font-size: 0.88em;
-        color: var(--accent-gold);
-    }
-    .reader-body table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 1.6rem 0;
-        border: 1px solid var(--border-subtle);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    .reader-body th, .reader-body td {
-        padding: 10px 14px;
-        border-bottom: 1px solid var(--border-subtle);
-        text-align: left;
-    }
-    .reader-body th {
-        background: var(--bg-surface-elevated);
-        color: var(--accent-gold);
-        font-family: var(--font-mono);
-        font-size: 0.82rem;
-    }
-    .backlink-node {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-        background: var(--accent-gold-muted);
-        border: 1px solid var(--border-frost);
-        border-radius: 4px;
-        color: var(--accent-gold);
-        font-family: var(--font-mono);
-        font-size: 0.85em;
-        text-decoration: none;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-    .backlink-node:hover {
-        background: var(--accent-gold);
-        color: var(--text-inverse);
-    }
+        .spotlight-dialog {
+            width: 90%;
+            max-width: 680px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-frost);
+            border-radius: 14px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px var(--accent-gold-glow);
+            margin: 80px auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-</style>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        .spotlight-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--bg-surface);
+        }
+
+        .spotlight-header input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 1.05rem;
+        }
+
+        .spotlight-kbd {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-subtle);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--text-muted);
+        }
+
+        .spotlight-results {
+            max-height: 420px;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .spotlight-item {
+            padding: 12px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+            background: rgba(8, 14, 10, 0.4);
+        }
+
+        .spotlight-item:hover, .spotlight-item.selected {
+            background: rgba(229, 169, 60, 0.12);
+            border-color: var(--accent-gold);
+        }
+
+        .spotlight-item-title {
+            font-family: var(--font-sans);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .spotlight-item-badge {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent-gold);
+            background: var(--accent-gold-muted);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .spotlight-item-preview {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+        .spotlight-item-preview mark {
+            background: rgba(229, 169, 60, 0.35);
+            color: var(--text-primary);
+            padding: 0 3px;
+            border-radius: 2px;
+        }
+
+        .spotlight-empty {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .spotlight-footer {
+            padding: 10px 18px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            gap: 16px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .spotlight-footer kbd {
+            background: rgba(0,0,0,0.4);
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid var(--border-subtle);
+            color: var(--accent-gold);
+        }
+    </style>
 </head>
 <body>
+
     <!-- Top Command Bar -->
     <header class="operator-topbar">
         <div class="topbar-left">
-            <a href="/" class="workspace-logo">
-                MYCELIATE<span>.CV</span> / OPERATOR
+            <a href="/brain" class="workspace-logo">
+                Myceliate<span>.cv</span>
             </a>
-            <div class="workspace-badge">
-                <span class="pulse-dot"></span>
-                <span>GCS VAULT SYNCHRONIZED</span>
-            </div>
+            <span class="workspace-badge">OPERATOR VAULT</span>
         </div>
 
         <div class="topbar-right">
-            <div class="operator-meta">
-                OPERATOR: <strong>GEORGE STEWARD</strong>
-            </div>
-            <button type="button" class="btn-topbar primary" onclick="switchRightTab('inject')">
-                <span>+ Context Note</span>
+            <button type="button" id="btn-spotlight-trigger" class="btn-topbar" onclick="openSpotlight()" title="Search memories (Cmd+K)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span>Spotlight</span>
+                <kbd style="background:rgba(0,0,0,0.4); padding:1px 4px; border-radius:3px; font-size:0.65rem; border:1px solid var(--border-subtle); color:var(--accent-gold);">⌘K</kbd>
             </button>
-            <a href="/" class="btn-topbar">
-                <span>Public Landing</span>
+            <a href="/" class="btn-topbar" target="_blank" rel="noopener">
+                <span>View Public Site ↗</span>
             </a>
             <a href="/api/logout" class="btn-topbar">
-                <span>Logout</span>
+                <span>Lock Session</span>
             </a>
         </div>
     </header>
 
-    <!-- Three-Panel Layout -->
-    <main class="workspace-grid">
-        <!-- Panel 1: Left (Directory, Domains, Agent Pulse) -->
+    <!-- 3-Panel Main Layout -->
+    <main class="workspace-layout">
+        
+        <!-- Panel 1: Left (Directory) -->
         <aside class="panel-left">
             <div class="panel-header">
-                <span>Domain Categories</span>
+                <span>Memory Index</span>
                 <span id="doc-count-badge" style="color:var(--accent-gold)">11 DOCS</span>
             </div>
 
@@ -953,41 +824,28 @@
             </div>
 
             <div class="doc-directory" id="doc-list-container">
-                <!-- Injected via JavaScript -->
+                <!-- Populated via JS -->
             </div>
 
-            <!-- Agent Status Telemetry -->
             <div class="agent-status-box">
                 <div class="panel-header" style="padding:0 0 6px; border:none;">
                     <span>Active Agent Mesh</span>
                 </div>
                 <div class="agent-list" id="agent-pulse-list">
-                    <div class="agent-pill active">
-                        <span class="agent-dot"></span>
-                        <span>Bodhi (Active)</span>
-                    </div>
-                    <div class="agent-pill active">
-                        <span class="agent-dot"></span>
-                        <span>Thea (Active)</span>
-                    </div>
-                    <div class="agent-pill active">
-                        <span class="agent-dot"></span>
-                        <span>Sylvan (Live)</span>
-                    </div>
-                    <div class="agent-pill">
-                        <span class="agent-dot"></span>
-                        <span>Reata (Idle)</span>
-                    </div>
+                    <div class="agent-pill active"><span class="agent-dot"></span><span>Bodhi (Live)</span></div>
+                    <div class="agent-pill active"><span class="agent-dot"></span><span>Thea (Live)</span></div>
+                    <div class="agent-pill active"><span class="agent-dot"></span><span>Sylvan (Live)</span></div>
+                    <div class="agent-pill"><span class="agent-dot"></span><span>Reata (Idle)</span></div>
                 </div>
             </div>
         </aside>
 
-        <!-- Panel 2: Center (Interactive Reader & Substrate Search) -->
+        <!-- Panel 2: Center (Reader & Search) -->
         <section class="panel-center">
             <div class="search-container">
                 <div class="search-input-wrap">
                     <span class="search-icon">🔍</span>
-                    <input type="text" id="substrate-search" class="search-input" placeholder="Search substrate memory by keywords or tags..." autocomplete="off">
+                    <input type="text" id="substrate-search" class="search-input" placeholder="Search memory directory as you type or press Cmd+K..." autocomplete="off">
                 </div>
                 <button type="button" class="btn-topbar" id="btn-clear-search" onclick="clearSearch()">
                     <span>Clear</span>
@@ -1006,10 +864,10 @@
 
                 <div class="doc-nav-controls">
                     <button type="button" class="btn-topbar" id="btn-prev-doc" onclick="navigateDoc(-1)">
-                        <span>&larr; Prev</span>
+                        <span>← Prev</span>
                     </button>
                     <button type="button" class="btn-topbar" id="btn-next-doc" onclick="navigateDoc(1)">
-                        <span>Next &rarr;</span>
+                        <span>Next →</span>
                     </button>
                 </div>
             </div>
@@ -1023,7 +881,7 @@
             </div>
         </section>
 
-        <!-- Panel 3: Right (Semantic Graph, Telemetry, Quick Injection) -->
+        <!-- Panel 3: Right (Graph, Telemetry, Inject) -->
         <aside class="panel-right">
             <div class="right-panel-tabs">
                 <button type="button" class="rp-tab-btn active" id="rp-tab-btn-graph" onclick="switchRightTab('graph')">Graph</button>
@@ -1035,7 +893,7 @@
                 <!-- Tab 1: Semantic Graph -->
                 <div class="rp-pane active" id="rp-pane-graph">
                     <div class="panel-header" style="padding:0 0 10px; border:none;">
-                        <span>Semantic Graph (1st &amp; 2nd Degree)</span>
+                        <span>Semantic Graph (1st & 2nd Degree)</span>
                     </div>
 
                     <div id="graph-canvas-container">
@@ -1047,9 +905,7 @@
                             <span>Connected Node References</span>
                             <span id="graph-node-count">4 Edges</span>
                         </div>
-                        <div id="graph-connections-list" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">
-                            <!-- Injected connections -->
-                        </div>
+                        <div id="graph-connections-list" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);"></div>
                     </div>
 
                     <div class="telemetry-card">
@@ -1092,7 +948,7 @@
                             <div style="margin-bottom:4px;">&bull; Bodhi (Session ID: s-bodhi-8912)</div>
                             <div style="margin-bottom:4px;">&bull; Thea (Session ID: s-thea-4401)</div>
                             <div style="margin-bottom:4px;">&bull; Sylvan (Session ID: s-sylvan-2104)</div>
-                            <div style="margin-bottom:4px;">&bull; George (Operator: Auth Valid)</div>
+                            <div style="margin-bottom:4px;">&bull; Operator Session: Active</div>
                         </div>
                     </div>
                 </div>
@@ -1137,6 +993,28 @@
         </aside>
     </main>
 
+    <!-- Global Spotlight Search Modal (Cmd+K) -->
+    <div id="spotlight-backdrop" class="modal-backdrop" onclick="closeSpotlight(event)">
+        <div class="spotlight-dialog" onclick="event.stopPropagation()">
+            <div class="spotlight-header">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-gold);">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="spotlight-input" placeholder="Search full-text memories, keywords, tags, or doc IDs (ESC to exit)..." autocomplete="off" autofocus>
+                <span class="spotlight-kbd">ESC</span>
+            </div>
+            <div id="spotlight-results" class="spotlight-results">
+                <div class="spotlight-empty">Type keywords to search full-text sovereign memory index...</div>
+            </div>
+            <div class="spotlight-footer">
+                <span>Navigate <kbd>↑</kbd> <kbd>↓</kbd></span>
+                <span>Select <kbd>ENTER</kbd></span>
+                <span>Close <kbd>ESC</kbd></span>
+            </div>
+        </div>
+    </div>
+
     <!-- Dashboard Core Logic -->
     <script>
     let allDocs = [];
@@ -1144,37 +1022,40 @@
     let currentDomainFilter = 'ALL';
     let currentDocId = 'doc-1';
 
+    const DEFAULT_DOC_INDEX = [
+        { path: "doc-1", title: "George Identity", tags: ["identity", "arboriculture", "systems"], domain: "Arboracle" },
+        { path: "doc-2", title: "George Updated", tags: ["biography", "trajectory"], domain: "Field Notes" },
+        { path: "doc-3", title: "Agent Ecosystem", tags: ["agents", "openclaw", "bodhi", "thea"], domain: "Forest_OS" },
+        { path: "doc-4", title: "Tech Stack", tags: ["mcp", "cloud-run", "gcs", "nodejs"], domain: "Forest_OS" },
+        { path: "doc-5", title: "Family & Roots", tags: ["personal", "legacy", "values"], domain: "Field Notes" },
+        { path: "doc-6", title: "Goals & Vision", tags: ["vision", "land-restoration", "stim"], domain: "STIM" },
+        { path: "doc-7", title: "Current Priorities", tags: ["priorities", "roadmap", "execution"], domain: "Arboracle" },
+        { path: "doc-8", title: "Unified Stack Pitch", tags: ["architecture", "sovereign", "infrastructure"], domain: "Forest_OS" },
+        { path: "doc-9", title: "Fungi Review Protocol", tags: ["reputation", "fungi", "peer-signal"], domain: "Reputation" },
+        { path: "doc-146", title: "STIM Provenance Layer", tags: ["stim", "axioms", "physics"], domain: "STIM" },
+        { path: "doc-183", title: "Neocambrian Voice Matrix", tags: ["interview", "axioms", "voice"], domain: "STIM" }
+    ];
+
     // 1. Fetch Doc List & Initialize
     async function initDashboard() {
         try {
             const res = await fetch('/api/brain/list');
             if (res.ok) {
                 const data = await res.json();
-                allDocs = data.docs || [];
+                if (Array.isArray(data.docs) && data.docs.length > 0) {
+                    allDocs = data.docs;
+                }
             }
         } catch (e) {
-            console.warn("Failed to load /api/brain/list, using local set", e);
+            console.warn("Failed to load /api/brain/list, using default index", e);
         }
 
-        if (allDocs.length === 0) {
-            allDocs = [
-                { path: "doc-1", title: "George Identity", tags: ["identity", "arboriculture", "systems"], domain: "Arboracle" },
-                { path: "doc-2", title: "George Updated", tags: ["biography", "trajectory"], domain: "Field Notes" },
-                { path: "doc-3", title: "Agent Ecosystem", tags: ["agents", "openclaw", "bodhi", "thea"], domain: "Forest_OS" },
-                { path: "doc-4", title: "Tech Stack", tags: ["mcp", "cloud-run", "gcs", "nodejs"], domain: "Forest_OS" },
-                { path: "doc-5", title: "Family & Roots", tags: ["personal", "legacy", "values"], domain: "Field Notes" },
-                { path: "doc-6", title: "Goals & Vision", tags: ["vision", "land-restoration", "stim"], domain: "STIM" },
-                { path: "doc-7", title: "Current Priorities", tags: ["priorities", "roadmap", "execution"], domain: "Arboracle" },
-                { path: "doc-8", title: "Unified Stack Pitch", tags: ["architecture", "sovereign", "infrastructure"], domain: "Forest_OS" },
-                { path: "doc-9", title: "Fungi Review Protocol", tags: ["reputation", "fungi", "peer-signal"], domain: "Reputation" },
-                { path: "doc-146", title: "STIM Provenance Layer", tags: ["stim", "axioms", "physics"], domain: "STIM" },
-                { path: "doc-183", title: "Neocambrian Voice Matrix", tags: ["interview", "axioms", "voice"], domain: "STIM" }
-            ];
+        if (!allDocs || allDocs.length === 0) {
+            allDocs = DEFAULT_DOC_INDEX;
         }
 
         renderDocList();
 
-        // Check if direct URL ?doc= is requested
         const urlParams = new URLSearchParams(window.location.search);
         const reqDoc = urlParams.get('doc') || 'doc-1';
         loadDocument(reqDoc);
@@ -1183,30 +1064,30 @@
     }
 
     // 2. Render Directory
-    function renderDocList() {
+    function renderDocList(overrideDocs) {
         const container = document.getElementById('doc-list-container');
         const badge = document.getElementById('doc-count-badge');
+        if (!container) return;
         container.innerHTML = '';
 
-        const filtered = allDocs.filter(d => {
+        const docsToRender = overrideDocs || allDocs.filter(d => {
             if (currentDomainFilter === 'ALL') return true;
             return d.domain === currentDomainFilter;
         });
 
-        badge.textContent = filtered.length + ' DOCS';
+        if (badge) badge.textContent = docsToRender.length + ' DOCS';
 
-        filtered.forEach((doc, idx) => {
+        docsToRender.forEach((doc) => {
             const item = document.createElement('div');
             item.className = 'doc-item' + (doc.path === currentDocId ? ' active' : '');
             item.onclick = () => loadDocument(doc.path);
 
-            item.innerHTML = `
-                <div class="doc-item-title">${doc.title || doc.path}</div>
-                <div class="doc-item-meta">
-                    <span class="doc-item-domain">${doc.domain || 'Field Notes'}</span>
-                    <span>${doc.path}</span>
-                </div>
-            `;
+            item.innerHTML = 
+                '<div class="doc-item-title">' + (doc.title || doc.path) + '</div>' +
+                '<div class="doc-item-meta">' +
+                    '<span class="doc-item-domain">' + (doc.domain || 'Field Notes') + '</span>' +
+                    '<span>' + doc.path + '</span>' +
+                '</div>';
             container.appendChild(item);
         });
     }
@@ -1230,7 +1111,7 @@
         document.getElementById('reader-title').textContent = docObj.title || docPath;
         document.getElementById('reader-path-badge').textContent = docPath;
         document.getElementById('reader-domain-badge').textContent = docObj.domain || 'Field Notes';
-        document.getElementById('reader-body').innerHTML = '<p style="color:var(--text-muted); font-family:var(--font-mono);">Fetching doc body from GCS...</p>';
+        document.getElementById('reader-body').innerHTML = '<p style="color:var(--text-muted); font-family:var(--font-mono);">Fetching doc body from sovereign vault...</p>';
 
         renderDocList();
         history.pushState({}, '', '?doc=' + docPath);
@@ -1248,7 +1129,7 @@
             }
 
             if (!rawText) {
-                rawText = `# ${docObj.title || docPath}\n\n*Document metadata verified in Mycelial Brain vault.* \n\nTags: ${docObj.tags?.join(', ') || 'substrate'}\n\nContext node linked to domain ${docObj.domain || 'Field Notes'}.`;
+                rawText = '# ' + (docObj.title || docPath) + '\n\n*Document metadata verified in Mycelial Brain vault.* \n\nTags: ' + (docObj.tags?.join(', ') || 'substrate') + '\n\nContext node linked to domain ' + (docObj.domain || 'Field Notes') + '.';
             }
 
             document.getElementById('reader-body').innerHTML = parseMarkdownToHtml(rawText);
@@ -1265,13 +1146,10 @@
         loadDocument(allDocs[nextIdx].path);
     }
 
-    // 4. Markdown Parser with Backlinks & Zero Em Dashes
-    
     // 4. Enhanced Markdown Parser with Backlinks, Callouts & Clean Typography
     function parseMarkdownToHtml(md) {
         if (!md) return '';
         
-        // Calculate reading stats
         const wordCount = md.trim().split(/\s+/).length;
         const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
         const metaStats = '<div style="display:flex; gap:14px; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--border-subtle); font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">' +
@@ -1297,7 +1175,6 @@
         return metaStats + parsed;
     }
 
-
     // 5. Semantic Graph Simulation
     function updateGraph(docPath, docObj) {
         const canvas = document.getElementById('graph-canvas');
@@ -1315,61 +1192,57 @@
         const centerX = w / 2;
         const centerY = h / 2;
 
-        // Related neighbor nodes based on index & domain
-        const neighbors = allDocs.filter(d => d.path !== docPath && (d.domain === docObj.domain || Math.random() > 0.5)).slice(0, 4);
+        const neighbors = allDocs.filter(d => d.path !== docPath && (d.domain === docObj.domain || Math.random() > 0.4)).slice(0, 4);
 
         const conList = document.getElementById('graph-connections-list');
-        conList.innerHTML = '';
+        if (conList) {
+            conList.innerHTML = '';
 
-        neighbors.forEach((n, i) => {
-            const angle = (i / neighbors.length) * Math.PI * 2;
-            const dist = 70;
-            const nx = centerX + Math.cos(angle) * dist;
-            const ny = centerY + Math.sin(angle) * dist;
+            neighbors.forEach((n, i) => {
+                const angle = (i / neighbors.length) * Math.PI * 2;
+                const dist = 65;
+                const nx = centerX + Math.cos(angle) * dist;
+                const ny = centerY + Math.sin(angle) * dist;
 
-            // Draw connecting hyphae filament
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(nx, ny);
-            ctx.strokeStyle = 'rgba(90, 138, 98, 0.45)';
-            ctx.lineWidth = 1.2;
-            ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(nx, ny);
+                ctx.strokeStyle = 'rgba(90, 138, 98, 0.45)';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
 
-            // Draw neighbor node
-            ctx.beginPath();
-            ctx.arc(nx, ny, 6, 0, Math.PI * 2);
-            ctx.fillStyle = '#5A8A62';
-            ctx.fill();
+                ctx.beginPath();
+                ctx.arc(nx, ny, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#5A8A62';
+                ctx.fill();
 
-            // Label
-            ctx.fillStyle = '#AFC2B2';
-            ctx.font = '9px JetBrains Mono';
-            ctx.fillText(n.path, nx + 8, ny + 3);
+                ctx.fillStyle = '#AFC2B2';
+                ctx.font = '9px JetBrains Mono';
+                ctx.fillText(n.path, nx + 7, ny + 3);
 
-            const row = document.createElement('div');
-            row.style.marginBottom = '4px';
-            row.innerHTML = `&bull; <a style="color:var(--hyphae-green-bright); text-decoration:none; cursor:pointer;" onclick="loadDocument('${n.path}')">${n.path} (${n.title})</a>`;
-            conList.appendChild(row);
-        });
+                const row = document.createElement('div');
+                row.style.marginBottom = '4px';
+                row.innerHTML = '&bull; <a style="color:var(--hyphae-green-bright); text-decoration:none; cursor:pointer;" onclick="loadDocument(\'' + n.path + '\')">' + n.path + ' (' + (n.title || 'Node') + ')</a>';
+                conList.appendChild(row);
+            });
+        }
 
-        // Draw center active node
         ctx.beginPath();
-        ctx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, 9, 0, Math.PI * 2);
         ctx.fillStyle = '#E5A93C';
         ctx.shadowColor = '#E5A93C';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#FFF';
-        ctx.font = 'bold 10px JetBrains Mono';
-        ctx.fillText(docPath, centerX - 16, centerY - 14);
-
-        document.getElementById('graph-node-count').textContent = neighbors.length + ' Edges';
+        const nodeCountBadge = document.getElementById('graph-node-count');
+        if (nodeCountBadge) nodeCountBadge.textContent = neighbors.length + ' Edges';
     }
 
     // 6. JSON-LD Previewer
     function updateJsonLd(docPath, docObj) {
+        const preview = document.getElementById('jsonld-preview');
+        if (!preview) return;
         const schema = {
             "@context": "https://schema.org",
             "@type": "DigitalDocument",
@@ -1383,7 +1256,7 @@
                 "protocol": "STIM Layer 0"
             }
         };
-        document.getElementById('jsonld-preview').textContent = JSON.stringify(schema, null, 2);
+        preview.textContent = JSON.stringify(schema, null, 2);
     }
 
     // 7. Right Panel Tab Switcher
@@ -1456,63 +1329,25 @@
         });
     }
 
-    // 9. Substrate Live Search
+    // 9. Substrate Live Search Filter (Instant Sidebar Search)
     const searchInput = document.getElementById('substrate-search');
-    let searchTimer = null;
 
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimer);
-            const query = e.target.value.trim();
+            const query = e.target.value.trim().toLowerCase();
             if (!query) {
                 renderDocList();
                 return;
             }
 
-            searchTimer = setTimeout(async () => {
-                try {
-                    const res = await fetch('/api/brain/search', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ query, limit: 10 })
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        const results = data.results || [];
-                        if (results.length > 0) {
-                            const matchedPaths = results.map(r => r.path);
-                            const matchedDocs = allDocs.filter(d => matchedPaths.includes(d.path));
-                            renderSearchResults(matchedDocs.length ? matchedDocs : results);
-                        }
-                    }
-                } catch (err) {
-                    console.warn("Substrate search proxy error:", err);
-                }
-            }, 250);
-        });
-    }
+            const matched = allDocs.filter(d => 
+                (d.title && d.title.toLowerCase().includes(query)) ||
+                (d.path && d.path.toLowerCase().includes(query)) ||
+                (d.domain && d.domain.toLowerCase().includes(query)) ||
+                (d.tags && d.tags.some(t => t.toLowerCase().includes(query)))
+            );
 
-    function renderSearchResults(results) {
-        const container = document.getElementById('doc-list-container');
-        const badge = document.getElementById('doc-count-badge');
-        container.innerHTML = '';
-        badge.textContent = results.length + ' MATCHES';
-
-        results.forEach(doc => {
-            const path = doc.path || 'result';
-            const title = doc.title || path;
-            const item = document.createElement('div');
-            item.className = 'doc-item' + (path === currentDocId ? ' active' : '');
-            item.onclick = () => loadDocument(path);
-
-            item.innerHTML = `
-                <div class="doc-item-title">${title}</div>
-                <div class="doc-item-meta">
-                    <span class="doc-item-domain">${doc.domain || 'Search Match'}</span>
-                    <span>${path}</span>
-                </div>
-            `;
-            container.appendChild(item);
+            renderDocList(matched);
         });
     }
 
@@ -1521,7 +1356,105 @@
         renderDocList();
     }
 
-    // 10. Telemetry Poller
+    // 10. Spotlight Search Modal (Cmd+K)
+    const spotlightModal = document.getElementById('spotlight-backdrop');
+    const spotlightInput = document.getElementById('spotlight-input');
+    const spotlightResults = document.getElementById('spotlight-results');
+    let spotlightDebounce = null;
+
+    function openSpotlight() {
+        if (!spotlightModal) return;
+        spotlightModal.classList.add('open', 'active');
+        if (spotlightInput) {
+            spotlightInput.value = '';
+            spotlightInput.focus();
+        }
+        executeSpotlightSearch('');
+    }
+
+    function closeSpotlight(e) {
+        if (spotlightModal) spotlightModal.classList.remove('open', 'active');
+    }
+
+    window.openSpotlight = openSpotlight;
+    window.closeSpotlight = closeSpotlight;
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            if (spotlightModal && spotlightModal.classList.contains('active')) {
+                closeSpotlight();
+            } else {
+                openSpotlight();
+            }
+        }
+        if (e.key === 'Escape' && spotlightModal && spotlightModal.classList.contains('active')) {
+            closeSpotlight();
+        }
+    });
+
+    async function executeSpotlightSearch(query) {
+        if (!spotlightResults) return;
+        
+        if (!query.trim()) {
+            spotlightResults.innerHTML = allDocs.slice(0, 8).map(d => {
+                return '<div class="spotlight-item" onclick="loadDocument(\'' + d.path + '\'); closeSpotlight();">' +
+                    '<div class="spotlight-item-title">' +
+                        '<span>' + (d.title || d.path) + '</span>' +
+                        '<span class="spotlight-item-badge">' + d.path + '</span>' +
+                    '</div>' +
+                    '<div class="spotlight-item-preview">' + (d.domain || 'Field Notes') + ' · Tags: ' + (d.tags ? d.tags.join(', ') : 'substrate') + '</div>' +
+                '</div>';
+            }).join('');
+            return;
+        }
+
+        spotlightResults.innerHTML = '<div class="spotlight-empty">Searching full-text sovereign memory index...</div>';
+
+        try {
+            const res = await fetch('/api/brain/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query.trim(), limit: 12 })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const hits = data.results || [];
+                if (hits.length === 0) {
+                    spotlightResults.innerHTML = '<div class="spotlight-empty">No memories found matching "' + query + '"</div>';
+                    return;
+                }
+
+                spotlightResults.innerHTML = hits.map(h => {
+                    const qRegex = new RegExp('(' + query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + ')', 'gi');
+                    const highlightedTitle = (h.title || h.path).replace(qRegex, '<mark>$1</mark>');
+                    const highlightedPreview = (h.preview || '').replace(qRegex, '<mark>$1</mark>');
+
+                    return '<div class="spotlight-item" onclick="loadDocument(\'' + h.path + '\'); closeSpotlight();">' +
+                        '<div class="spotlight-item-title">' +
+                            '<span>' + highlightedTitle + '</span>' +
+                            '<span class="spotlight-item-badge">' + h.path + '</span>' +
+                        '</div>' +
+                        '<div class="spotlight-item-preview">' + highlightedPreview + '</div>' +
+                    '</div>';
+                }).join('');
+            }
+        } catch (err) {
+            spotlightResults.innerHTML = '<div class="spotlight-empty">Search query interrupted: ' + err.message + '</div>';
+        }
+    }
+
+    if (spotlightInput) {
+        spotlightInput.addEventListener('input', (e) => {
+            clearTimeout(spotlightDebounce);
+            spotlightDebounce = setTimeout(() => {
+                executeSpotlightSearch(e.target.value);
+            }, 180);
+        });
+    }
+
+    // 11. Telemetry Poller
     async function fetchTelemetry() {
         try {
             const res = await fetch('/api/brain/telemetry');
@@ -1537,29 +1470,5 @@
     // Initialize Dashboard
     window.addEventListener('DOMContentLoaded', initDashboard);
     </script>
-
-    <!-- Global Spotlight Search Modal (Cmd+K) -->
-    <div id="spotlight-backdrop" class="modal-backdrop" onclick="closeSpotlight(event)">
-        <div class="spotlight-dialog" onclick="event.stopPropagation()">
-            <div class="spotlight-header">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-gold);">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="spotlight-input" placeholder="Search full-text memories, keywords, tags, or doc IDs (ESC to exit)..." autocomplete="off" autofocus>
-                <span class="spotlight-kbd">ESC</span>
-            </div>
-            <div id="spotlight-results" class="spotlight-results">
-                <div class="spotlight-empty">Type keywords to search full-text sovereign memory index...</div>
-            </div>
-            <div class="spotlight-footer">
-                <span>Navigate <kbd>↑</kbd> <kbd>↓</kbd></span>
-                <span>Select <kbd>ENTER</kbd></span>
-                <span>Close <kbd>ESC</kbd></span>
-            </div>
-        </div>
-    </div>
-
 </body>
 </html>
-
