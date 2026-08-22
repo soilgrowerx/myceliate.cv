@@ -1,5 +1,5 @@
 const fs = require('fs');
-const archiver = require('archiver');
+const AdmZip = require('adm-zip');
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -540,19 +540,15 @@ const child = spawn('npx', ['-y', 'mcp-remote', endpoint], {
 child.on('exit', (code) => process.exit(code || 0));
 `;
 
+    const zip = new AdmZip();
+    zip.addFile('manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8'));
+    zip.addFile('server/index.js', Buffer.from(serverWrapperJs.trim(), 'utf8'));
+    const zipBuffer = zip.toBuffer();
+
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="myceliate-brain-${username}.mcpb"`);
-
-    const archive = (typeof archiver === 'function') 
-        ? archiver('zip', { zlib: { level: 9 } }) 
-        : new archiver.ZipArchive({ zlib: { level: 9 } });
-
-    archive.on('error', (err) => res.status(500).send({ error: err.message }));
-    archive.pipe(res);
-
-    archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
-    archive.append(serverWrapperJs.trim(), { name: 'server/index.js' });
-    archive.finalize();
+    res.setHeader('Content-Length', zipBuffer.length);
+    res.end(zipBuffer);
 });
 
 // Per-User MCP Gateway with Bearer Authentication
