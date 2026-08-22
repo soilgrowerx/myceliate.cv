@@ -303,6 +303,39 @@ function authMiddleware(req, res, next) {
         '/query'
     ];
 
+    const cookies = parseCookies(req);
+    const validOperatorToken = generateAuthToken();
+    const currentSitePassword = process.env.SITE_PASSWORD || 'mycelium2026';
+
+    const authHeader = req.headers['authorization'];
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : (authHeader ? authHeader.trim() : null);
+
+    // Check operator session or key
+    if (cookies.cv_auth === validOperatorToken || bearerToken === currentSitePassword || (bearerToken && activeOperatorKeys.has(bearerToken))) {
+        req.authContext = { role: 'operator', username: 'george' };
+    } else if (cookies.cv_user_session) {
+        const verifiedUsername = verifyUserSessionToken(cookies.cv_user_session);
+        if (verifiedUsername && (userRegistry.has(verifiedUsername) || verifiedUsername === 'george')) {
+            req.authContext = {
+                role: verifiedUsername === 'george' ? 'operator' : 'user',
+                username: verifiedUsername,
+                user: userRegistry.get(verifiedUsername)
+            };
+        }
+    } else if (bearerToken) {
+        const bHash = crypto.createHash('sha256').update(bearerToken).digest('hex');
+        for (const [uname, u] of userRegistry) {
+            if (u && u.apiKeyHash === bHash) {
+                req.authContext = {
+                    role: uname === 'george' ? 'operator' : 'user',
+                    username: uname,
+                    user: u
+                };
+                break;
+            }
+        }
+    }
+
     if (
         publicPaths.includes(req.path) ||
         req.path.startsWith('/mcp/') ||
@@ -321,45 +354,8 @@ function authMiddleware(req, res, next) {
         return next();
     }
 
-    const cookies = parseCookies(req);
-    const validOperatorToken = generateAuthToken();
-    const currentSitePassword = process.env.SITE_PASSWORD || 'mycelium2026';
-
-    const authHeader = req.headers['authorization'];
-    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : (authHeader ? authHeader.trim() : null);
-
-    // Check operator session or key
-    if (cookies.cv_auth === validOperatorToken || bearerToken === currentSitePassword || (bearerToken && activeOperatorKeys.has(bearerToken))) {
-        req.authContext = { role: 'operator', username: 'george' };
+    if (req.authContext) {
         return next();
-    }
-
-    // Check user-scoped session cookie
-    if (cookies.cv_user_session) {
-        const verifiedUsername = verifyUserSessionToken(cookies.cv_user_session);
-        if (verifiedUsername && (userRegistry.has(verifiedUsername) || verifiedUsername === 'george')) {
-            req.authContext = {
-                role: verifiedUsername === 'george' ? 'operator' : 'user',
-                username: verifiedUsername,
-                user: userRegistry.get(verifiedUsername)
-            };
-            return next();
-        }
-    }
-
-    // Check user-scoped Bearer API key
-    if (bearerToken) {
-        const bHash = crypto.createHash('sha256').update(bearerToken).digest('hex');
-        for (const [uname, u] of userRegistry) {
-            if (u && u.apiKeyHash === bHash) {
-                req.authContext = {
-                    role: uname === 'george' ? 'operator' : 'user',
-                    username: uname,
-                    user: u
-                };
-                return next();
-            }
-        }
     }
 
     if (req.path.startsWith('/api/') || req.path === '/query' || req.method === 'POST' || req.headers.accept?.includes('application/json')) {
@@ -804,7 +800,20 @@ app.post('/api/seed-brain', (req, res) => {
     }
 
     // Store into user profile
-    const user = userRegistry.get(cleanUsername);
+    let user = userRegistry.get(cleanUsername);
+    if (!user && cleanUsername && cleanUsername !== 'operator') {
+        user = {
+            username: cleanUsername,
+            displayName: cleanUsername,
+            email: `${cleanUsername}@domain.com`,
+            tier: 'sovereign',
+            apiKeyHash: '',
+            createdAt: new Date().toISOString(),
+            queryUsage: 0,
+            docs: []
+        };
+        userRegistry.set(cleanUsername, user);
+    }
     if (user) {
         if (!Array.isArray(user.docs)) user.docs = [];
         const existingPaths = new Set(user.docs.map(d => d.path));
