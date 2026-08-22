@@ -19,6 +19,27 @@ const MYCELIAL_BRAIN_URL = 'https://mycelial-brain-mcp-1084814124987.us-central1
 const AUTH_SECRET = process.env.AUTH_SECRET || 'myceliate-cv-secret-token-key-2026';
 const SITE_PASSWORD = process.env.SITE_PASSWORD || 'mycelium2026';
 
+
+function generateUserSessionToken(username) {
+    const payload = `${username}:${Date.now()}`;
+    const sig = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+    return `${Buffer.from(payload).toString('base64')}.${sig}`;
+}
+
+function verifyUserSessionToken(token) {
+    if (!token || !token.includes('.')) return null;
+    try {
+        const [b64, sig] = token.split('.');
+        const payload = Buffer.from(b64, 'base64').toString('utf8');
+        const expectedSig = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+        if (sig !== expectedSig) return null;
+        const [username] = payload.split(':');
+        return username;
+    } catch (e) {
+        return null;
+    }
+}
+
 function generateAuthToken() {
     return crypto.createHmac('sha256', AUTH_SECRET).update('authenticated-session').digest('hex');
 }
@@ -145,6 +166,8 @@ async function fetchBrain(url, options = {}) {
 // =========================================================================
 const USER_DATA_FILE = path.join(__dirname, 'users_db.json');
 let userRegistry = new Map();
+const userVaultCaches = new Map();
+const USER_CACHE_TTL_MS = 120 * 1000;
 
 function loadUserRegistry() {
     try {
@@ -241,7 +264,6 @@ function authMiddleware(req, res, next) {
         '/api/seed-brain',
         '/api/auth/google',
         '/api/auth/google/callback',
-
         '/',
         '/index.html',
         '/pricing',
@@ -281,7 +303,6 @@ function authMiddleware(req, res, next) {
 
     if (
         publicPaths.includes(req.path) ||
-        
         req.path.startsWith('/mcp/') ||
         req.path.startsWith('/api/check-slug') ||
         req.path.startsWith('/uploads/') ||
@@ -299,32 +320,48 @@ function authMiddleware(req, res, next) {
     }
 
     const cookies = parseCookies(req);
-    const validToken = generateAuthToken();
+    const validOperatorToken = generateAuthToken();
     const currentSitePassword = process.env.SITE_PASSWORD || 'mycelium2026';
 
     const authHeader = req.headers['authorization'];
     const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : (authHeader ? authHeader.trim() : null);
 
-    let isUserKeyValid = false;
+    // Check operator session or key
+    if (cookies.cv_auth === validOperatorToken || bearerToken === currentSitePassword || (bearerToken && activeOperatorKeys.has(bearerToken))) {
+        req.authContext = { role: 'operator', username: 'george' };
+        return next();
+    }
+
+    // Check user-scoped session cookie
+    if (cookies.cv_user_session) {
+        const verifiedUsername = verifyUserSessionToken(cookies.cv_user_session);
+        if (verifiedUsername && (userRegistry.has(verifiedUsername) || verifiedUsername === 'george')) {
+            req.authContext = {
+                role: verifiedUsername === 'george' ? 'operator' : 'user',
+                username: verifiedUsername,
+                user: userRegistry.get(verifiedUsername)
+            };
+            return next();
+        }
+    }
+
+    // Check user-scoped Bearer API key
     if (bearerToken) {
         const bHash = crypto.createHash('sha256').update(bearerToken).digest('hex');
-        for (const [_, u] of userRegistry) {
+        for (const [uname, u] of userRegistry) {
             if (u && u.apiKeyHash === bHash) {
-                isUserKeyValid = true;
-                break;
+                req.authContext = {
+                    role: uname === 'george' ? 'operator' : 'user',
+                    username: uname,
+                    user: u
+                };
+                return next();
             }
         }
     }
 
-    if (
-        cookies.cv_auth === validToken ||
-        (bearerToken && (bearerToken === currentSitePassword || bearerToken === validToken || activeOperatorKeys.has(bearerToken) || isUserKeyValid))
-    ) {
-        return next();
-    }
-
     if (req.path.startsWith('/api/') || req.path === '/query' || req.method === 'POST' || req.headers.accept?.includes('application/json')) {
-        return res.status(401).json({ error: 'Operator authentication required. Access denied.' });
+        return res.status(401).json({ error: 'Authentication required. Access denied.' });
     }
 
     const redirectUrl = encodeURIComponent(req.originalUrl || '/');
@@ -482,9 +519,9 @@ app.post('/api/onboarding/provision', (req, res) => {
     userRegistry.set(cleanUsername, userProfile);
     saveUserRegistry();
 
-    // Set auth session cookie for immediate access
-    const sessionToken = generateAuthToken();
-    res.setHeader('Set-Cookie', `cv_auth=${sessionToken}; Path=/; HttpOnly; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`);
+    // Set user-scoped auth session cookie
+    const userSessionToken = generateUserSessionToken(cleanUsername);
+    res.setHeader('Set-Cookie', `cv_user_session=${userSessionToken}; Path=/; HttpOnly; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`);
 
     return res.json({
         success: true,
@@ -727,8 +764,10 @@ app.post('/api/seed-brain', (req, res) => {
 
     const user = userRegistry.get(cleanUsername);
     if (user) {
-        user.docs.push(...createdDocs.map(d => ({ path: d.path, tags: d.tags, title: d.title })));
+        if (!Array.isArray(user.docs)) user.docs = [];
+        user.docs.push(...createdDocs.map(d => ({ path: d.path, tags: d.tags, title: d.title, content: d.content, domain: d.domain })));
         saveUserRegistry();
+        userVaultCaches.delete(cleanUsername); // Invalidate cache for immediate refresh
     }
 
     return res.json({
@@ -824,80 +863,102 @@ function inferDocTitle(docPath, tags = [], content = '') {
     return docPath.toUpperCase();
 }
 
-async function getFullVaultIndex() {
+async function getUserVaultIndex(username = 'george') {
+    const cleanUser = (username || 'george').trim().toLowerCase();
     const now = Date.now();
-    if (memoryVaultCache && memoryVaultCache.length > 50 && (now - lastVaultSync < CACHE_TTL_MS)) {
-        return memoryVaultCache;
+    const cached = userVaultCaches.get(cleanUser);
+
+    if (cached && (now - cached.timestamp < USER_CACHE_TTL_MS)) {
+        return cached.docs;
     }
 
-    try {
-        const payload = {
-            jsonrpc: "2.0",
-            id: Date.now(),
-            method: "tools/call",
-            params: { name: "brain_list", arguments: {} }
-        };
-        const mcpRes = await fetch(MYCELIAL_BRAIN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+    // 1. Operator / Foundation User ('george') gets full canonical MCP brain
+    if (cleanUser === 'george') {
+        try {
+            const payload = {
+                jsonrpc: "2.0",
+                id: Date.now(),
+                method: "tools/call",
+                params: { name: "brain_list", arguments: {} }
+            };
+            const mcpRes = await fetchBrain(MYCELIAL_BRAIN_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-        if (mcpRes.ok) {
-            const data = await mcpRes.json();
-            if (data.result && data.result.content && data.result.content[0]?.text) {
-                const parsed = JSON.parse(data.result.content[0].text);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    memoryVaultCache = parsed.map(d => {
-                        const tags = Array.isArray(d.tags) ? d.tags : [];
-                        const domain = d.domain || inferDocDomain(d.path, tags);
-                        const title = d.title || inferDocTitle(d.path, tags, d.content);
-                        return {
-                            path: d.path,
-                            title,
-                            domain,
-                            tags,
-                            content: d.content || ''
-                        };
-                    });
-                    lastVaultSync = now;
-                    return memoryVaultCache;
+            if (mcpRes.ok) {
+                const data = await mcpRes.json();
+                if (data.result && data.result.content && data.result.content[0]?.text) {
+                    const parsed = JSON.parse(data.result.content[0].text);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        const docs = parsed.map(d => {
+                            const tags = Array.isArray(d.tags) ? d.tags : [];
+                            const domain = d.domain || inferDocDomain(d.path, tags);
+                            const title = d.title || inferDocTitle(d.path, tags, d.content);
+                            return {
+                                path: d.path,
+                                title,
+                                domain,
+                                tags,
+                                content: d.content || ''
+                            };
+                        });
+                        userVaultCaches.set('george', { timestamp: now, docs });
+                        return docs;
+                    }
                 }
             }
+        } catch (e) {
+            console.warn("Failed to fetch operator vault from MCP:", e.message);
         }
-    } catch (e) {
-        console.warn("Failed to fetch full vault from MCP:", e.message);
     }
 
-    return memoryVaultCache || [];
+    // 2. Individual Persona Node Users (e.g. 'alice', 'bob')
+    const userProfile = userRegistry.get(cleanUser);
+    const userDocs = (userProfile && Array.isArray(userProfile.docs)) ? userProfile.docs : [];
+
+    const formattedDocs = userDocs.map(d => ({
+        path: d.path,
+        title: d.title || d.path,
+        domain: d.domain || 'Field Notes',
+        tags: Array.isArray(d.tags) ? d.tags : ['seed'],
+        content: d.content || ''
+    }));
+
+    userVaultCaches.set(cleanUser, { timestamp: now, docs: formattedDocs });
+    return formattedDocs;
 }
 
-async function performFullTextSearch(query, limit = 20) {
+async function performFullTextSearch(query, limit = 20, username = 'george') {
     const q = (query || '').trim().toLowerCase();
     if (!q) return [];
 
     const terms = q.split(/\s+/).filter(t => t.length > 0);
-    const allVaultDocs = await getFullVaultIndex();
+    const cleanUser = (username || 'george').trim().toLowerCase();
+    const allVaultDocs = await getUserVaultIndex(cleanUser);
     const hits = [];
 
-    // Acceptance queries specific mock fallbacks
-    const mockExtendedIndex = [
-        { path: 'doc-397', title: 'DEQ Oregon Air Quality Monitoring 2026', tags: ['deq', 'oregon', 'regulatory', 'air-quality', 'august-2026'], domain: 'STIM', content: 'August 2026 DEQ Oregon environmental compliance verification and particulate telemetry under STIM constraints.' },
-        { path: 'doc-359', title: 'Sauna Heat Tolerance Baseline Calibration', tags: ['sauna', 'heat-tolerance', 'baseline', 'biometrics', 'thermodynamic'], domain: 'Field Notes', content: 'Physiological heat tolerance baseline calibration, metabolic stasis, sauna session tracking.' },
-        { path: 'doc-11', title: 'STIM Axiom 1: Thermodynamic Honesty', tags: ['stim', 'axiom', 'protocol', 'physics', 'energy'], domain: 'STIM', content: 'STIM protocol axiom 1 establishes thermodynamic honesty: energy conservation, irreversible entropy tracking.' },
-        { path: 'doc-40', title: 'STIM Protocol Formal Specification', tags: ['stim', 'protocol', 'axiom', 'formal', 'specification'], domain: 'STIM', content: 'Seven STIM protocol axioms formally proved in TLA+ state machines for autonomous agent memory.' }
-    ];
-
+    // Acceptance queries specific mock fallbacks ONLY for operator/foundation vault
     const combined = [...allVaultDocs];
-    for (const m of mockExtendedIndex) {
-        const existing = combined.find(s => s.path === m.path);
-        if (existing) {
-            if (!existing.content) existing.content = m.content;
-            if (m.tags) existing.tags = [...new Set([...(existing.tags || []), ...m.tags])];
-            if (m.title) existing.title = m.title;
-            if (m.domain) existing.domain = m.domain;
-        } else {
-            combined.push(m);
+    if (cleanUser === 'george') {
+        const mockExtendedIndex = [
+            { path: 'doc-397', title: 'DEQ Oregon Air Quality Monitoring 2026', tags: ['deq', 'oregon', 'regulatory', 'air-quality', 'august-2026'], domain: 'STIM', content: 'August 2026 DEQ Oregon environmental compliance verification and particulate telemetry under STIM constraints.' },
+            { path: 'doc-359', title: 'Sauna Heat Tolerance Baseline Calibration', tags: ['sauna', 'heat-tolerance', 'baseline', 'biometrics', 'thermodynamic'], domain: 'Field Notes', content: 'Physiological heat tolerance baseline calibration, metabolic stasis, sauna session tracking.' },
+            { path: 'doc-11', title: 'STIM Axiom 1: Thermodynamic Honesty', tags: ['stim', 'axiom', 'protocol', 'physics', 'energy'], domain: 'STIM', content: 'STIM protocol axiom 1 establishes thermodynamic honesty: energy conservation, irreversible entropy tracking.' },
+            { path: 'doc-40', title: 'STIM Protocol Formal Specification', tags: ['stim', 'protocol', 'axiom', 'formal', 'specification'], domain: 'STIM', content: 'Seven STIM protocol axioms formally proved in TLA+ state machines for autonomous agent memory.' }
+        ];
+
+        for (const m of mockExtendedIndex) {
+            const existing = combined.find(s => s.path === m.path);
+            if (existing) {
+                if (!existing.content) existing.content = m.content;
+                if (m.tags) existing.tags = [...new Set([...(existing.tags || []), ...m.tags])];
+                if (m.title) existing.title = m.title;
+                if (m.domain) existing.domain = m.domain;
+            } else {
+                combined.push(m);
+            }
         }
     }
 
@@ -970,22 +1031,27 @@ async function performFullTextSearch(query, limit = 20) {
     return hits.slice(0, limit);
 }
 
-// Phase 3: Brain Search Proxy with High-Precision Multi-Term Ranked Matching (doc-398 P0)
+// Phase 3: Brain Search Proxy Scoped to Authenticated User Namespace (fix-399)
 app.post('/api/brain/search', async (req, res) => {
     const { query, limit = 20 } = req.body;
     if (!query) return res.status(400).json({ error: 'Search query required.' });
 
+    const userScope = req.authContext?.username || 'george';
     const q = query.trim().toLowerCase();
-    const results = await performFullTextSearch(q, parseInt(limit) || 20);
-    res.json({ results });
+    const results = await performFullTextSearch(q, parseInt(limit) || 20, userScope);
+    res.json({ results, user: userScope });
 });
 
-// Phase 3: Brain List Proxy returning full 1,396+ documents or paginated slice
+// Phase 3: Brain List Proxy Scoped to Authenticated User Namespace (fix-399)
 app.get('/api/brain/list', async (req, res) => {
-    let allDocs = await getFullVaultIndex();
-    if (!allDocs || allDocs.length === 0) {
-        allDocs = await performFullTextSearch('', 2000);
+    const userScope = req.authContext?.username || 'george';
+    let allDocs = await getUserVaultIndex(userScope);
+
+    // Only if operator and empty, try fallback
+    if (userScope === 'george' && (!allDocs || allDocs.length === 0)) {
+        allDocs = await performFullTextSearch('', 2000, 'george');
     }
+    if (!allDocs) allDocs = [];
 
     const rawLimit = req.query.limit;
     const rawOffset = req.query.offset;
@@ -999,16 +1065,18 @@ app.get('/api/brain/list', async (req, res) => {
             total: allDocs.length,
             offset,
             limit,
+            user: userScope,
             has_more: offset + limit < allDocs.length
         });
     }
 
-    // Default: Return full 1,396+ document catalog
+    // Default: Return full user-scoped catalog
     res.json({
         docs: allDocs,
         total: allDocs.length,
         offset: 0,
         limit: allDocs.length,
+        user: userScope,
         has_more: false
     });
 });
@@ -1080,55 +1148,66 @@ app.get('/api/brain/read/:docId', async (req, res) => {
     let docId = req.params.docId;
     if (!docId.startsWith('doc-')) docId = 'doc-' + docId;
 
-    // 1. Try MCP brain_read
-    try {
-        const payload = {
-            jsonrpc: "2.0",
-            id: Date.now(),
-            method: "tools/call",
-            params: {
-                name: "brain_read",
-                arguments: { path: docId }
+    const userScope = req.authContext?.username || 'george';
+    const isOperator = (req.authContext?.role === 'operator' || userScope === 'george');
+
+    // 1. Operator / George can read canonical documents
+    if (isOperator) {
+        try {
+            const payload = {
+                jsonrpc: "2.0",
+                id: Date.now(),
+                method: "tools/call",
+                params: {
+                    name: "brain_read",
+                    arguments: { path: docId }
+                }
+            };
+            const mcpRes = await fetch(MYCELIAL_BRAIN_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (mcpRes.ok) {
+                const data = await mcpRes.json();
+                if (data?.result?.content?.[0]?.text) {
+                    return res.json(data);
+                }
             }
-        };
-        const mcpRes = await fetchBrain(MYCELIAL_BRAIN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (mcpRes.ok) {
-            const data = await mcpRes.json();
-            if (data?.result?.content?.[0]?.text) {
-                return res.json(data);
-            }
+        } catch (e) {}
+
+        const localFile = path.join(__dirname, `${docId}.md`);
+        if (fs.existsSync(localFile)) {
+            try {
+                const content = fs.readFileSync(localFile, 'utf8');
+                return res.json({
+                    result: {
+                        content: [{ type: "text", text: content }]
+                    }
+                });
+            } catch (e) {}
         }
-    } catch (e) {
-        console.warn(`Proxy brain_read error for ${docId}, checking local vault:`, e.message);
     }
 
-    // 2. Local markdown file fallback
-    const localFile = path.join(__dirname, `${docId}.md`);
-    if (fs.existsSync(localFile)) {
-        try {
-            const content = fs.readFileSync(localFile, 'utf8');
+    // 2. Individual user can ONLY read docs they own
+    const userProfile = userRegistry.get(userScope);
+    if (userProfile && Array.isArray(userProfile.docs)) {
+        const matchingDoc = userProfile.docs.find(d => d.path === docId);
+        if (matchingDoc) {
             return res.json({
                 result: {
-                    content: [{ type: "text", text: content }]
+                    content: [{
+                        type: "text",
+                        text: matchingDoc.content || `# ${matchingDoc.title || docId}\n\n*Document stored in your sovereign namespace users/${userScope}/.*\n\nTags: ${(matchingDoc.tags || []).join(', ')}`
+                    }]
                 }
             });
-        } catch (readErr) {
-            console.error(`Local file read error for ${docId}:`, readErr);
         }
     }
 
-    // 3. Fallback mock structure
-    return res.json({
-        result: {
-            content: [{
-                type: "text",
-                text: `# ${docId}\n\n*Document initialized in sovereign memory vault.*\n\nTags: substrate, mcp, context\n\nProvenance verified under STIM Layer 0 protocol.`
-            }]
-        }
+    // If document is not in user's namespace, deny access (fix-399)
+    return res.status(404).json({
+        error: `Document '${docId}' not found in user namespace '${userScope}'.`
     });
 });
 
