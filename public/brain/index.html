@@ -367,6 +367,19 @@
             color: var(--text-secondary);
         }
 
+        
+        .badge-tag.tag-chip {
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .badge-tag.tag-chip:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            background: var(--accent-gold-muted);
+            transform: translateY(-1px);
+        }
+
         .badge-tag.gold {
             color: var(--accent-gold);
             border-color: var(--border-frost);
@@ -1231,6 +1244,19 @@
         document.getElementById('reader-title').textContent = docObj.title || docPath;
         document.getElementById('reader-path-badge').textContent = docPath;
         document.getElementById('reader-domain-badge').textContent = docObj.domain || 'Field Notes';
+        
+        // Render dynamic clickable tag chips
+        const tagsContainer = document.getElementById('reader-tags');
+        if (tagsContainer) {
+            let tagsHtml = '<span class="badge-tag gold" id="reader-path-badge">' + docPath + '</span>' +
+                           '<span class="badge-tag" id="reader-domain-badge">' + (docObj.domain || 'Field Notes') + '</span>';
+            if (Array.isArray(docObj.tags) && docObj.tags.length > 0) {
+                tagsHtml += docObj.tags.map(t => '<span class="badge-tag tag-chip" onclick="searchByTag(\'' + t.replace(/'/g, "\\'") + '\')">#' + t + '</span>').join('');
+            } else {
+                tagsHtml += '<span class="badge-tag" id="reader-updated-badge">GCS Verified</span>';
+            }
+            tagsContainer.innerHTML = tagsHtml;
+        }
         document.getElementById('reader-body').innerHTML = '<p style="color:var(--text-muted); font-family:var(--font-mono);">Fetching doc body from sovereign vault...</p>';
 
         renderDocList();
@@ -1470,6 +1496,19 @@
             renderDocList(matched);
         });
     }
+
+    
+    function searchByTag(tag) {
+        if (!tag) return;
+        const cleanTag = tag.trim().toLowerCase();
+        const searchBox = document.getElementById('substrate-search');
+        if (searchBox) {
+            searchBox.value = cleanTag;
+            searchBox.dispatchEvent(new Event('input'));
+            if (window.innerWidth <= 900) switchMobileView('directory');
+        }
+    }
+    window.searchByTag = searchByTag;
 
     function clearSearch() {
         if (searchInput) searchInput.value = '';

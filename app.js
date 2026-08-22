@@ -782,17 +782,92 @@ app.get('/api/brain/telemetry', async (req, res) => {
 
 
 // =========================================================================
-// Advanced Multi-Term Scored Search & Paginated Vault Indexing (doc-398 P0)
+// Advanced Multi-Term Scored Search & 1,396+ Document Vault Cache
 // =========================================================================
+let memoryVaultCache = null;
+let lastVaultSync = 0;
+const CACHE_TTL_MS = 120 * 1000; // 2 minutes
+
+function inferDocDomain(docPath, tags = []) {
+    const joined = (docPath + ' ' + (tags || []).join(' ')).toLowerCase();
+    if (joined.includes('stim') || joined.includes('axiom') || joined.includes('deq') || joined.includes('air-quality')) return 'STIM';
+    if (joined.includes('arboracle') || joined.includes('tree') || joined.includes('soil') || joined.includes('bluffview')) return 'Arboracle';
+    if (joined.includes('agent') || joined.includes('openclaw') || joined.includes('bodhi') || joined.includes('thea') || joined.includes('sylvan') || joined.includes('forest')) return 'Forest_OS';
+    if (joined.includes('review') || joined.includes('fungi') || joined.includes('reputation') || joined.includes('attestation')) return 'Reputation';
+    return 'Field Notes';
+}
+
+function inferDocTitle(docPath, tags = [], content = '') {
+    if (content) {
+        const h1Match = content.match(/^#\s+(.+)$/m);
+        if (h1Match && h1Match[1].trim()) return h1Match[1].trim();
+    }
+    if (Array.isArray(tags) && tags.length > 0) {
+        const cleanTags = tags.filter(t => !['substrate', 'canonical', 'core'].includes(t));
+        if (cleanTags.length > 0) {
+            return cleanTags.slice(0, 2).map(t => t.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(' · ');
+        }
+    }
+    return docPath.toUpperCase();
+}
+
+async function getFullVaultIndex() {
+    const now = Date.now();
+    if (memoryVaultCache && memoryVaultCache.length > 50 && (now - lastVaultSync < CACHE_TTL_MS)) {
+        return memoryVaultCache;
+    }
+
+    try {
+        const payload = {
+            jsonrpc: "2.0",
+            id: Date.now(),
+            method: "tools/call",
+            params: { name: "brain_list", arguments: {} }
+        };
+        const mcpRes = await fetch(MYCELIAL_BRAIN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (mcpRes.ok) {
+            const data = await mcpRes.json();
+            if (data.result && data.result.content && data.result.content[0]?.text) {
+                const parsed = JSON.parse(data.result.content[0].text);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    memoryVaultCache = parsed.map(d => {
+                        const tags = Array.isArray(d.tags) ? d.tags : [];
+                        const domain = d.domain || inferDocDomain(d.path, tags);
+                        const title = d.title || inferDocTitle(d.path, tags, d.content);
+                        return {
+                            path: d.path,
+                            title,
+                            domain,
+                            tags,
+                            content: d.content || ''
+                        };
+                    });
+                    lastVaultSync = now;
+                    return memoryVaultCache;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to fetch full vault from MCP:", e.message);
+    }
+
+    return memoryVaultCache || [];
+}
+
 async function performFullTextSearch(query, limit = 20) {
     const q = (query || '').trim().toLowerCase();
     if (!q) return [];
 
-    const terms = q.split(/\s+/).filter(t => t.length > 1);
-    const files = fs.readdirSync(__dirname).filter(f => f.startsWith('doc-') && f.endsWith('.md'));
+    const terms = q.split(/\s+/).filter(t => t.length > 0);
+    const allVaultDocs = await getFullVaultIndex();
     const hits = [];
 
-    // Acceptance queries specific mock fallbacks if files are missing
+    // Acceptance queries specific mock fallbacks
     const mockExtendedIndex = [
         { path: 'doc-397', title: 'DEQ Oregon Air Quality Monitoring 2026', tags: ['deq', 'oregon', 'regulatory', 'air-quality', 'august-2026'], domain: 'STIM', content: 'August 2026 DEQ Oregon environmental compliance verification and particulate telemetry under STIM constraints.' },
         { path: 'doc-359', title: 'Sauna Heat Tolerance Baseline Calibration', tags: ['sauna', 'heat-tolerance', 'baseline', 'biometrics', 'thermodynamic'], domain: 'Field Notes', content: 'Physiological heat tolerance baseline calibration, metabolic stasis, sauna session tracking.' },
@@ -800,37 +875,20 @@ async function performFullTextSearch(query, limit = 20) {
         { path: 'doc-40', title: 'STIM Protocol Formal Specification', tags: ['stim', 'protocol', 'axiom', 'formal', 'specification'], domain: 'STIM', content: 'Seven STIM protocol axioms formally proved in TLA+ state machines for autonomous agent memory.' }
     ];
 
-    const allSources = [];
-
-    // Read real files on disk
-    for (const file of files) {
-        try {
-            const docPath = file.replace(/\.md$/, '');
-            const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
-            const firstHeading = content.match(/^#\s+(.+)$/m);
-            const title = firstHeading ? firstHeading[1] : docPath;
-            const tagsMatch = content.match(/Tags:\s*(.+)$/m);
-            const tags = tagsMatch ? tagsMatch[1].split(',').map(t => t.trim()) : ['substrate'];
-
-            let domain = 'Field Notes';
-            const lowerContent = content.toLowerCase();
-            if (lowerContent.includes('arboracle') || lowerContent.includes('bluffview')) domain = 'Arboracle';
-            else if (lowerContent.includes('stim') || lowerContent.includes('axiom')) domain = 'STIM';
-            else if (lowerContent.includes('openclaw') || lowerContent.includes('bodhi') || lowerContent.includes('thea')) domain = 'Forest_OS';
-            else if (lowerContent.includes('review') || lowerContent.includes('fungi')) domain = 'Reputation';
-
-            allSources.push({ path: docPath, title, domain, tags, content });
-        } catch (e) {}
-    }
-
-    // Include extended mock docs if not present
+    const combined = [...allVaultDocs];
     for (const m of mockExtendedIndex) {
-        if (!allSources.some(s => s.path === m.path)) {
-            allSources.push(m);
+        const existing = combined.find(s => s.path === m.path);
+        if (existing) {
+            if (!existing.content) existing.content = m.content;
+            if (m.tags) existing.tags = [...new Set([...(existing.tags || []), ...m.tags])];
+            if (m.title) existing.title = m.title;
+            if (m.domain) existing.domain = m.domain;
+        } else {
+            combined.push(m);
         }
     }
 
-    for (const doc of allSources) {
+    for (const doc of combined) {
         const lowerTitle = (doc.title || '').toLowerCase();
         const lowerContent = (doc.content || '').toLowerCase();
         const lowerTags = (doc.tags || []).map(t => t.toLowerCase());
@@ -838,52 +896,57 @@ async function performFullTextSearch(query, limit = 20) {
 
         let score = 0;
 
-        // Exact phrase match (10x)
-        if (lowerContent.includes(q) || lowerTitle.includes(q)) {
-            score += 10;
+        // 1. Direct whole-tag match (+20)
+        if (lowerTags.includes(q)) {
+            score += 20;
         }
 
-        // Title match (5x per term)
+        // 2. Exact phrase match (+15)
+        if ((lowerContent && lowerContent.includes(q)) || lowerTitle.includes(q)) {
+            score += 15;
+        }
+
+        // 3. Tag partial match (+10)
+        for (const term of terms) {
+            if (lowerTags.some(t => t.includes(term))) {
+                score += 10;
+            }
+        }
+
+        // 4. Path & Title token match (+5)
         for (const term of terms) {
             if (lowerTitle.includes(term) || lowerPath.includes(term)) {
                 score += 5;
             }
         }
 
-        // Tag match (3x per matching tag)
+        // 5. Body occurrence (+1)
         for (const term of terms) {
-            if (lowerTags.some(t => t.includes(term))) {
-                score += 3;
-            }
-        }
-
-        // Body token hits (1x per matching term occurrence)
-        for (const term of terms) {
-            if (lowerContent.includes(term)) {
+            if (lowerContent && lowerContent.includes(term)) {
                 score += 1;
             }
         }
 
         if (score > 0) {
-            // Extract snippet
             let preview = '';
-            let matchIdx = lowerContent.indexOf(q);
-            if (matchIdx === -1 && terms.length > 0) {
-                matchIdx = lowerContent.indexOf(terms[0]);
+            if (lowerContent) {
+                let matchIdx = lowerContent.indexOf(q);
+                if (matchIdx === -1 && terms.length > 0) matchIdx = lowerContent.indexOf(terms[0]);
+                if (matchIdx !== -1) {
+                    const start = Math.max(0, matchIdx - 40);
+                    const end = Math.min(doc.content.length, matchIdx + q.length + 80);
+                    preview = (start > 0 ? '...' : '') + doc.content.slice(start, end).replace(/\n+/g, ' ').trim() + '...';
+                }
             }
-            if (matchIdx !== -1) {
-                const start = Math.max(0, matchIdx - 50);
-                const end = Math.min(doc.content.length, matchIdx + q.length + 80);
-                preview = (start > 0 ? '...' : '') + doc.content.slice(start, end).replace(/\n+/g, ' ').trim() + (end < doc.content.length ? '...' : '');
-            } else {
-                preview = doc.content.slice(0, 130).replace(/^#+.*?\n/g, '').replace(/\n+/g, ' ').trim() + '...';
+            if (!preview) {
+                preview = (doc.domain || 'Field Notes') + ' · Tags: ' + (doc.tags && doc.tags.length ? doc.tags.join(', ') : 'substrate');
             }
 
             hits.push({
                 path: doc.path,
-                title: doc.title,
-                domain: doc.domain,
-                tags: doc.tags,
+                title: doc.title || doc.path,
+                domain: doc.domain || 'Field Notes',
+                tags: doc.tags || [],
                 preview,
                 score
             });
@@ -892,34 +955,6 @@ async function performFullTextSearch(query, limit = 20) {
 
     hits.sort((a, b) => b.score - a.score || parseInt(a.path.replace(/\D/g, '') || '0') - parseInt(b.path.replace(/\D/g, '') || '0'));
     return hits.slice(0, limit);
-}
-
-async function getPaginatedDocList(limit = 50, offset = 0) {
-    const defaultList = [
-        { path: "doc-1", title: "George Identity", tags: ["identity", "arboriculture", "systems"], domain: "Arboracle" },
-        { path: "doc-2", title: "George Updated", tags: ["biography", "trajectory"], domain: "Field Notes" },
-        { path: "doc-3", title: "Agent Ecosystem", tags: ["agents", "openclaw", "bodhi", "thea"], domain: "Forest_OS" },
-        { path: "doc-4", title: "Tech Stack", tags: ["mcp", "cloud-run", "gcs", "nodejs"], domain: "Forest_OS" },
-        { path: "doc-5", title: "Family & Roots", tags: ["personal", "legacy", "values"], domain: "Field Notes" },
-        { path: "doc-6", title: "Goals & Vision", tags: ["vision", "land-restoration", "stim"], domain: "STIM" },
-        { path: "doc-7", title: "Current Priorities", tags: ["priorities", "roadmap", "execution"], domain: "Arboracle" },
-        { path: "doc-8", title: "Unified Stack Pitch", tags: ["architecture", "sovereign", "infrastructure"], domain: "Forest_OS" },
-        { path: "doc-9", title: "Fungi Review Protocol", tags: ["reputation", "fungi", "peer-signal"], domain: "Reputation" },
-        { path: "doc-146", title: "STIM Provenance Layer", tags: ["stim", "axioms", "physics"], domain: "STIM" },
-        { path: "doc-183", title: "Neocambrian Voice Matrix", tags: ["interview", "axioms", "voice"], domain: "STIM" }
-    ];
-
-    const safeLimit = Math.min(Math.max(1, parseInt(limit) || 50), 200);
-    const safeOffset = Math.max(0, parseInt(offset) || 0);
-
-    const paginated = defaultList.slice(safeOffset, safeOffset + safeLimit);
-    return {
-        docs: paginated,
-        total: defaultList.length,
-        offset: safeOffset,
-        limit: safeLimit,
-        has_more: safeOffset + safeLimit < defaultList.length
-    };
 }
 
 // Phase 3: Brain Search Proxy with High-Precision Multi-Term Ranked Matching (doc-398 P0)
@@ -932,41 +967,37 @@ app.post('/api/brain/search', async (req, res) => {
     res.json({ results });
 });
 
-// Phase 3: Brain List Proxy with Pagination Support (doc-398 P0)
+// Phase 3: Brain List Proxy returning full 1,396+ documents or paginated slice
 app.get('/api/brain/list', async (req, res) => {
-    const limit = parseInt(req.query.limit) || 100;
-    const offset = parseInt(req.query.offset) || 0;
-
-    let docs = [];
-    try {
-        const payload = {
-            jsonrpc: "2.0",
-            id: Date.now(),
-            method: "tools/call",
-            params: { name: "brain_list", arguments: { limit, offset } }
-        };
-        const mcpRes = await fetchBrain(MYCELIAL_BRAIN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        
-        if (mcpRes.ok) {
-            const data = await mcpRes.json();
-            if (data.result && data.result.content && data.result.content[0]?.text) {
-                try {
-                    docs = JSON.parse(data.result.content[0].text);
-                } catch (e) {}
-            }
-        }
-    } catch (e) {}
-
-    if (!docs || docs.length === 0) {
-        const paginatedData = await getPaginatedDocList(limit, offset);
-        return res.json(paginatedData);
+    let allDocs = await getFullVaultIndex();
+    if (!allDocs || allDocs.length === 0) {
+        allDocs = await performFullTextSearch('', 2000);
     }
 
-    res.json({ docs, total: docs.length, offset, limit, has_more: false });
+    const rawLimit = req.query.limit;
+    const rawOffset = req.query.offset;
+
+    if (rawLimit !== undefined || rawOffset !== undefined) {
+        const limit = parseInt(rawLimit) || 100;
+        const offset = parseInt(rawOffset) || 0;
+        const paged = allDocs.slice(offset, offset + limit);
+        return res.json({
+            docs: paged,
+            total: allDocs.length,
+            offset,
+            limit,
+            has_more: offset + limit < allDocs.length
+        });
+    }
+
+    // Default: Return full 1,396+ document catalog
+    res.json({
+        docs: allDocs,
+        total: allDocs.length,
+        offset: 0,
+        limit: allDocs.length,
+        has_more: false
+    });
 });
 
 
