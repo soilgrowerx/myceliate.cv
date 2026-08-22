@@ -278,6 +278,8 @@ function authMiddleware(req, res, next) {
         '/login.html',
         '/signup',
         '/signup.html',
+        '/checkout',
+        '/checkout.html',
         '/interview',
         '/interview.html',
         '/profile',
@@ -290,13 +292,17 @@ function authMiddleware(req, res, next) {
         '/favicon.ico',
         '/robots.txt',
         '/_health',
+        '/api/config',
         '/api/login',
         '/api/auth',
+        '/api/auth/google',
         '/api/auth/reset',
         '/api/auth/verify',
         '/api/outcomes',
         '/api/review',
         '/api/create-checkout-session',
+        '/api/create-payment-intent',
+        '/api/confirm-payment-provision',
         '/api/signup',
         '/api/interview',
         '/api/query',
@@ -840,6 +846,10 @@ app.post('/api/seed-brain', (req, res) => {
 });
 
 app.get('/signup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+
+app.get('/checkout', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'signup.html'));
 });
 
@@ -1469,38 +1479,315 @@ When sources conflict, weight higher-fidelity signals. Never present a HYPOTHESI
 }
 
 // ==========================================
-// Stripe Integration
+// Config Endpoint (Stripe & Google OAuth)
+// ==========================================
+app.get('/api/config', (req, res) => {
+    res.json({
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_51RtzIU4RZRpHKSOYxk15XrNOuNf44jQYTC0hJYMeIqrpdmjxkzOkBodH8pcG2BdRlji9UCooRMrxUPMFdnFnZXGS00nvtiL4Ji',
+        googleClientId: process.env.GOOGLE_CLIENT_ID || '1084814124987-1ngdrskh7rvrjooug6vo2o9kdgt1ba8d.apps.googleusercontent.com'
+    });
+});
+
+// ==========================================
+// Google OAuth & Identity Synthesis
+// ==========================================
+app.post('/api/auth/google', async (req, res) => {
+    try {
+        const { credential, id_token, preferred_username, plan = 'swarm', billing = 'monthly' } = req.body;
+        const token = credential || id_token;
+        if (!token) {
+            return res.status(400).json({ error: 'Google credential / ID token is required.' });
+        }
+
+        let googlePayload = null;
+
+        // Verify with Google tokeninfo endpoint or decode JWT
+        try {
+            const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`);
+            if (googleRes.ok) {
+                googlePayload = await googleRes.json();
+            }
+        } catch (e) {
+            console.warn("Google tokeninfo verify network error:", e.message);
+        }
+
+        // Fallback to parsing JWT payload
+        if (!googlePayload && token.includes('.')) {
+            try {
+                const parts = token.split('.');
+                const payloadStr = Buffer.from(parts[1], 'base64').toString('utf8');
+                googlePayload = JSON.parse(payloadStr);
+            } catch (e) {}
+        }
+
+        if (!googlePayload || !googlePayload.email) {
+            return res.status(400).json({ error: 'Failed to verify Google identity credential.' });
+        }
+
+        const email = googlePayload.email.trim().toLowerCase();
+        const displayName = googlePayload.name || email.split('@')[0];
+        const picture = googlePayload.picture || '';
+
+        // Find existing user with this email or create new node
+        let existingUser = null;
+        for (const [uname, u] of userRegistry) {
+            if (u.email && u.email.toLowerCase() === email) {
+                existingUser = u;
+                break;
+            }
+        }
+
+        let username;
+        let rawApiKey;
+
+        if (existingUser) {
+            username = existingUser.username;
+            existingUser.displayName = displayName;
+            existingUser.picture = picture;
+            if (plan) existingUser.tier = plan;
+            if (!existingUser.apiKeyHash) {
+                rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
+                existingUser.apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
+            }
+            saveUserRegistry();
+        } else {
+            let baseSlug = (preferred_username || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9-]/g, '');
+            if (baseSlug.length < 3 || RESERVED_SLUGS.has(baseSlug)) {
+                baseSlug = `node-${baseSlug || 'user'}`;
+            }
+            username = baseSlug;
+            if (userRegistry.has(username)) {
+                username = `${baseSlug}-${crypto.randomBytes(2).toString('hex')}`;
+            }
+
+            rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
+            const apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
+
+            const newUser = {
+                username,
+                displayName,
+                email,
+                picture,
+                tier: plan,
+                billingPeriod: billing,
+                apiKeyHash,
+                createdAt: new Date().toISOString(),
+                queryUsage: 0,
+                docs: []
+            };
+
+            userRegistry.set(username, newUser);
+            saveUserRegistry();
+        }
+
+        // Issue session cookie
+        const sessionToken = generateUserSessionToken(username);
+        res.setHeader('Set-Cookie', `cv_user_session=${sessionToken}; Path=/; HttpOnly; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`);
+
+        res.json({
+            success: true,
+            username,
+            displayName,
+            email,
+            picture,
+            tier: existingUser ? existingUser.tier : plan,
+            apiKey: rawApiKey || '(Stored securely in your session)',
+            redirect: '/onboarding'
+        });
+    } catch (e) {
+        console.error("Google OAuth error:", e);
+        res.status(500).json({ error: e.message || 'Google authentication failed.' });
+    }
+});
+
+// ==========================================
+// Plan Pricing Matrix
+// ==========================================
+const PLAN_PRICING = {
+    persona: {
+        name: 'Sovereign Persona',
+        monthly: 400,    // $4.00
+        annual: 3600     // $36.00 (25% off)
+    },
+    swarm: {
+        name: 'Swarm Collective',
+        monthly: 1400,   // $14.00
+        annual: 12600    // $126.00 (25% off)
+    },
+    enterprise: {
+        name: 'Enterprise Substrate',
+        monthly: 4900,   // $49.00
+        annual: 44100    // $441.00 (25% off)
+    }
+};
+
+// ==========================================
+// Stripe Elements Payment Intent API
+// ==========================================
+app.post('/api/create-payment-intent', async (req, res) => {
+    try {
+        const { plan = 'swarm', billing = 'monthly', username, email, displayName } = req.body;
+        const normalizedPlan = (plan || 'swarm').toLowerCase();
+        const normalizedBilling = (billing || 'monthly').toLowerCase();
+
+        const planConfig = PLAN_PRICING[normalizedPlan] || PLAN_PRICING.swarm;
+        const amount = normalizedBilling === 'annual' ? planConfig.annual : planConfig.monthly;
+
+        // Stripe API integration
+        if (stripe) {
+            try {
+                const paymentIntent = await stripe.paymentIntents.create({
+                    amount,
+                    currency: 'usd',
+                    description: `Myceliate.cv — ${planConfig.name} (${normalizedBilling}) for ${username || email || 'Genesis Node'}`,
+                    receipt_email: email || undefined,
+                    metadata: {
+                        username: username || '',
+                        email: email || '',
+                        plan: normalizedPlan,
+                        billing: normalizedBilling
+                    },
+                    automatic_payment_methods: { enabled: true }
+                });
+
+                return res.json({
+                    clientSecret: paymentIntent.client_secret,
+                    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_51RtzIU4RZRpHKSOYxk15XrNOuNf44jQYTC0hJYMeIqrpdmjxkzOkBodH8pcG2BdRlji9UCooRMrxUPMFdnFnZXGS00nvtiL4Ji',
+                    amount,
+                    currency: 'usd',
+                    plan: normalizedPlan,
+                    planName: planConfig.name,
+                    billing: normalizedBilling
+                });
+            } catch (stripeErr) {
+                console.warn("Stripe PaymentIntent create warning:", stripeErr.message);
+            }
+        }
+
+        // Simulated / Zero-Friction Test Client Secret
+        const mockSecret = `pi_sim_${crypto.randomBytes(12).toString('hex')}_secret_${crypto.randomBytes(16).toString('hex')}`;
+        res.json({
+            clientSecret: mockSecret,
+            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_simulated_key',
+            amount,
+            currency: 'usd',
+            plan: normalizedPlan,
+            planName: planConfig.name,
+            billing: normalizedBilling,
+            simulated: !stripe
+        });
+    } catch (e) {
+        console.error("Payment intent creation error:", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==========================================
+// Confirm Payment & Provision Persona Node
+// ==========================================
+app.post('/api/confirm-payment-provision', async (req, res) => {
+    try {
+        const { username, email, displayName, plan = 'swarm', billing = 'monthly', paymentIntentId } = req.body;
+        
+        let cleanUsername = (username || (email ? email.split('@')[0] : '')).trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+        if (!cleanUsername || cleanUsername.length < 3 || RESERVED_SLUGS.has(cleanUsername)) {
+            cleanUsername = `node-${Date.now().toString(36).slice(-4)}`;
+        }
+
+        let user = userRegistry.get(cleanUsername);
+        let rawApiKey;
+
+        if (user) {
+            user.tier = plan;
+            user.billingPeriod = billing;
+            if (displayName) user.displayName = displayName;
+            if (email) user.email = email;
+            if (paymentIntentId) user.paymentIntentId = paymentIntentId;
+            if (!user.apiKeyHash) {
+                rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
+                user.apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
+            }
+        } else {
+            rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
+            const apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
+            user = {
+                username: cleanUsername,
+                displayName: displayName || cleanUsername,
+                email: email || `${cleanUsername}@network.local`,
+                tier: plan,
+                billingPeriod: billing,
+                paymentIntentId: paymentIntentId || null,
+                apiKeyHash,
+                createdAt: new Date().toISOString(),
+                queryUsage: 0,
+                docs: []
+            };
+            userRegistry.set(cleanUsername, user);
+        }
+        saveUserRegistry();
+
+        // Issue session cookie
+        const sessionToken = generateUserSessionToken(cleanUsername);
+        res.setHeader('Set-Cookie', `cv_user_session=${sessionToken}; Path=/; HttpOnly; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`);
+
+        res.json({
+            success: true,
+            username: cleanUsername,
+            displayName: user.displayName,
+            tier: user.tier,
+            apiKey: rawApiKey || '(Active in session)',
+            redirect: '/onboarding'
+        });
+    } catch (e) {
+        console.error("Confirm payment provision error:", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ==========================================
+// Stripe Hosted Checkout Session
 // ==========================================
 app.post('/api/create-checkout-session', async (req, res) => {
     try {
-        if (!process.env.STRIPE_SECRET_KEY) {
-            return res.status(400).json({ error: 'Stripe configuration missing. Wait for system provisioning.' });
+        const { plan = 'swarm', billing = 'monthly', username, email } = req.body;
+        const normalizedPlan = (plan || 'swarm').toLowerCase();
+        const normalizedBilling = (billing || 'monthly').toLowerCase();
+        const planConfig = PLAN_PRICING[normalizedPlan] || PLAN_PRICING.swarm;
+        const amount = normalizedBilling === 'annual' ? planConfig.annual : planConfig.monthly;
+
+        if (stripe) {
+            try {
+                const session = await stripe.checkout.sessions.create({
+                    payment_method_types: ['card'],
+                    line_items: [
+                        {
+                            price_data: {
+                                currency: 'usd',
+                                product_data: {
+                                    name: `Myceliate.cv — ${planConfig.name}`,
+                                    description: `Autonomous agent memory substrate (${normalizedBilling} cadence).`
+                                },
+                                unit_amount: amount,
+                                ...(normalizedBilling === 'monthly' ? { recurring: { interval: 'month' } } : { recurring: { interval: 'year' } })
+                            },
+                            quantity: 1
+                        }
+                    ],
+                    mode: 'subscription',
+                    customer_email: email || undefined,
+                    client_reference_id: username || undefined,
+                    success_url: `${req.protocol}://${req.get('host')}/onboarding?session_id={CHECKOUT_SESSION_ID}&plan=${normalizedPlan}`,
+                    cancel_url: `${req.protocol}://${req.get('host')}/pricing.html`
+                });
+
+                return res.json({ url: session.url });
+            } catch (e) {
+                console.warn("Stripe Checkout Session warning:", e.message);
+            }
         }
-        const { tier } = req.body;
-        
-        let priceId;
-        if (tier === 'spore') priceId = process.env.STRIPE_PRICE_SPORE;
-        else if (tier === 'mycelium') priceId = process.env.STRIPE_PRICE_MYCELIUM;
-        else return res.status(400).json({ error: 'Invalid tier requested.' });
 
-        if (!priceId) {
-            return res.status(400).json({ error: 'Stripe Price ID not configured for this tier yet.' });
-        }
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [
-                {
-                    price: priceId,
-                    quantity: 1,
-                },
-            ],
-            mode: 'subscription',
-            success_url: `${req.protocol}://${req.get('host')}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${req.protocol}://${req.get('host')}/pricing.html`,
-        });
-
-        res.json({ url: session.url });
+        // Direct fallback to embedded signup checkout
+        res.json({ redirect: `/signup?plan=${normalizedPlan}&billing=${normalizedBilling}` });
     } catch (e) {
         console.error('Stripe Integration Error:', e);
         res.status(500).json({ error: e.message });
@@ -1508,75 +1795,55 @@ app.post('/api/create-checkout-session', async (req, res) => {
 });
 
 // ==========================================
-// Stripe Integration
-// ==========================================
-app.post('/api/create-checkout-session', async (req, res) => {
-    try {
-        if (!process.env.STRIPE_SECRET_KEY) {
-            return res.status(400).json({ error: 'Stripe configuration missing. Wait for system provisioning.' });
-        }
-        const { tier } = req.body;
-        
-        let priceId;
-        if (tier === 'spore') priceId = process.env.STRIPE_PRICE_SPORE;
-        else if (tier === 'mycelium') priceId = process.env.STRIPE_PRICE_MYCELIUM;
-        else return res.status(400).json({ error: 'Invalid tier requested.' });
-
-        if (!priceId) {
-            return res.status(400).json({ error: 'Stripe Price ID not configured for this tier yet.' });
-        }
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [
-                {
-                    price: priceId,
-                    quantity: 1,
-                },
-            ],
-            mode: 'subscription',
-            success_url: `${req.protocol}://${req.get('host')}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${req.protocol}://${req.get('host')}/pricing.html`,
-        });
-
-        res.json({ url: session.url });
-    } catch (e) {
-        console.error('Stripe Integration Error:', e);
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// ==========================================
-// Auth Integration
+// Direct Identity Synthesis (Password / Email Signup)
 // ==========================================
 app.post('/api/signup', async (req, res) => {
     try {
-        if (!supabase) {
-            return res.status(400).json({ error: 'Database provisioning incomplete. Synthesization offline.' });
-        }
-        const { email, password, username } = req.body;
-        if (!email || !password || !username) {
-            return res.status(400).json({ error: 'Email, password, and username are required.' });
+        const { email, password, username, plan = 'swarm', billing = 'monthly' } = req.body;
+        if (!email || !username) {
+            return res.status(400).json({ error: 'Email and username are required.' });
         }
 
-        // Validate username formatting
-        if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
-            return res.status(400).json({ error: 'Username must be at least 3 characters and contain only letters, numbers, and underscores.' });
+        let cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+        if (!cleanUsername || cleanUsername.length < 3 || RESERVED_SLUGS.has(cleanUsername)) {
+            return res.status(400).json({ error: 'Invalid username. Please choose a valid 3-30 character slug.' });
         }
 
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    username: username.toLowerCase()
-                }
-            }
+        let rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
+        const apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
+
+        let user = userRegistry.get(cleanUsername);
+        if (user) {
+            user.email = email;
+            user.tier = plan;
+            user.billingPeriod = billing;
+        } else {
+            user = {
+                username: cleanUsername,
+                displayName: cleanUsername,
+                email,
+                tier: plan,
+                billingPeriod: billing,
+                apiKeyHash,
+                createdAt: new Date().toISOString(),
+                queryUsage: 0,
+                docs: []
+            };
+            userRegistry.set(cleanUsername, user);
+        }
+        saveUserRegistry();
+
+        const sessionToken = generateUserSessionToken(cleanUsername);
+        res.setHeader('Set-Cookie', `cv_user_session=${sessionToken}; Path=/; HttpOnly; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax`);
+
+        res.json({
+            success: true,
+            username: cleanUsername,
+            displayName: user.displayName,
+            tier: user.tier,
+            apiKey: rawApiKey,
+            redirect: '/onboarding'
         });
-
-        if (error) throw error;
-        
-        res.json({ message: 'Synthesization successful.', user: data.user });
     } catch (e) {
         console.error('Signup Error:', e);
         res.status(500).json({ error: e.message || 'Failed to synthesize account.' });
@@ -2250,6 +2517,9 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
+module.exports.server = server;

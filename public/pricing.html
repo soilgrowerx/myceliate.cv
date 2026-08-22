@@ -258,25 +258,8 @@
             setBillingPeriod(currentPeriod === 'monthly' ? 'annual' : 'monthly');
         }
 
-        async function checkout(planId) {
-            try {
-                const response = await fetch('/api/create-checkout-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ plan: planId, billing: currentPeriod })
-                });
-
-                const data = await response.json();
-                if (data.url) {
-                    window.location.href = data.url;
-                } else if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    window.location.href = '/signup?plan=' + planId;
-                }
-            } catch (err) {
-                window.location.href = '/signup?plan=' + planId;
-            }
+        function checkout(planId) {
+            window.location.href = '/signup?plan=' + planId + '&billing=' + currentPeriod;
         }
     </script>
 </body>

@@ -3,185 +3,1146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Myceliate CV | System Initialization</title>
+    <title>Synthesize Identity & Deploy Node | Myceliate.cv</title>
     <link rel="manifest" href="/manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
+    
+    <!-- Google Identity Services & Stripe.js -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://js.stripe.com/v3/"></script>
+
     <style>
-        .auth-container {
-            padding: 60px 20px;
-            max-width: 500px;
-            margin: 0 auto;
+        :root {
+            --bg-obsidian: #050b08;
+            --bg-surface: #0b1612;
+            --bg-surface-elevated: #11221c;
+            --bg-surface-glass: rgba(11, 22, 18, 0.85);
+            --border-subtle: rgba(100, 255, 218, 0.15);
+            --border-active: #64ffda;
+            --accent-gold: #d4af37;
+            --accent-gold-glow: rgba(212, 175, 55, 0.25);
+            --hyphae-green: #64ffda;
+            --hyphae-green-glow: rgba(100, 255, 218, 0.3);
+            --text-primary: #e2f1e8;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-serif: 'Fraunces', Georgia, serif;
+            --font-sans: 'Space Grotesk', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-obsidian);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #mycelium-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        .checkout-layout {
             position: relative;
             z-index: 10;
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+        }
+
+        .checkout-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(100, 255, 218, 0.08);
+            border: 1px solid rgba(100, 255, 218, 0.25);
+            color: var(--hyphae-green);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            margin-bottom: 16px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .checkout-header h1 {
+            font-family: var(--font-serif);
+            font-size: 2.75rem;
+            color: var(--text-primary);
+            margin: 0 0 10px;
+            letter-spacing: -0.02em;
+        }
+
+        .checkout-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin: 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.25fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (max-width: 880px) {
+            .checkout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-card {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        /* Order Summary Column */
+        .plan-summary-title {
+            font-family: var(--font-serif);
+            font-size: 1.4rem;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tier-picker {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.4);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .tier-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 10px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
             text-align: center;
         }
 
-        .auth-container h1 {
-            font-size: 2.5rem;
-            color: #fff;
-            margin-bottom: 10px;
-        }
-        
-        .auth-container p {
-            color: rgba(255,255,255,0.7);
-            margin-bottom: 30px;
+        .tier-btn.active {
+            background: rgba(100, 255, 218, 0.15);
+            color: var(--hyphae-green);
+            border: 1px solid rgba(100, 255, 218, 0.35);
         }
 
-        .auth-box {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(100, 255, 218, 0.2);
+        .billing-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-subtle);
+            padding: 12px 16px;
             border-radius: 8px;
-            padding: 40px;
-            backdrop-filter: blur(10px);
-            text-align: left;
+            margin-bottom: 24px;
+        }
+
+        .billing-label {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .billing-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255,255,255,0.15);
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--hyphae-green);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: #000;
+        }
+
+        .discount-tag {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--accent-gold);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-family: var(--font-mono);
+        }
+
+        .price-breakdown {
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 16px 0;
+            margin-bottom: 24px;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .breakdown-row.total {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .total-amount {
+            color: var(--hyphae-green);
+            font-family: var(--font-mono);
+        }
+
+        .plan-feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .plan-feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .plan-feature-item span.icon {
+            color: var(--hyphae-green);
+            font-weight: bold;
+        }
+
+        /* Identity & Payment Column */
+        .section-subhead {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--hyphae-green);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .google-auth-box {
+            margin-bottom: 20px;
+        }
+
+        .google-btn-custom {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 13px;
+            background: #ffffff;
+            color: #1f2937;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.98rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+        }
+
+        .google-btn-custom:hover {
+            background: #f1f5f9;
+            transform: translateY(-1px);
+        }
+
+        .google-btn-custom svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .user-identity-card {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            background: rgba(100, 255, 218, 0.08);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--hyphae-green);
+        }
+
+        .user-info-text {
+            flex: 1;
+        }
+
+        .user-name-line {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .user-email-line {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+
+        .verified-badge {
+            background: var(--hyphae-green);
+            color: #000;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+        }
+
+        .divider-line {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+        }
+
+        .divider-line::before, .divider-line::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .divider-line:not(:empty)::before {
+            margin-right: .75em;
+        }
+
+        .divider-line:not(:empty)::after {
+            margin-left: .75em;
         }
 
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .input-group label {
             display: block;
-            margin-bottom: 8px;
-            color: rgba(255,255,255,0.9);
+            margin-bottom: 6px;
+            color: var(--text-primary);
             font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .slug-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .slug-input-wrapper:focus-within {
+            border-color: var(--hyphae-green);
+            box-shadow: 0 0 12px var(--hyphae-green-glow);
+        }
+
+        .slug-domain {
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.03);
+            border-right: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .slug-input-wrapper input {
+            flex: 1;
+            padding: 12px 14px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-family: var(--font-mono);
             font-size: 0.95rem;
         }
 
-        .input-group input {
+        .slug-feedback {
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .slug-feedback.available { color: var(--hyphae-green); }
+        .slug-feedback.checking { color: var(--accent-gold); }
+        .slug-feedback.taken { color: #ff6b6b; }
+
+        .text-input {
             width: 100%;
-            padding: 12px;
+            box-sizing: border-box;
+            padding: 12px 14px;
             background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(100,255,218,0.3);
-            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
             color: #fff;
-            font-family: 'Space Grotesk', sans-serif;
+            font-family: var(--font-sans);
             outline: none;
             transition: all 0.2s;
         }
 
-        .input-group input:focus {
-            border-color: #64ffda;
-            box-shadow: 0 0 10px rgba(100,255,218,0.2);
+        .text-input:focus {
+            border-color: var(--hyphae-green);
+            box-shadow: 0 0 12px var(--hyphae-green-glow);
         }
 
-        .btn-submit {
-            background: #64ffda;
+        /* Stripe Elements Styling */
+        .stripe-container {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .stripe-container:focus-within {
+            border-color: var(--hyphae-green);
+            box-shadow: 0 0 12px var(--hyphae-green-glow);
+        }
+
+        #card-element {
+            min-height: 20px;
+        }
+
+        .card-errors {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            min-height: 18px;
+            font-family: var(--font-mono);
+        }
+
+        .btn-deploy {
+            background: var(--hyphae-green);
             color: #000;
-            padding: 14px 24px;
+            padding: 16px 24px;
             border: none;
-            border-radius: 4px;
-            font-weight: bold;
+            border-radius: 8px;
+            font-weight: 700;
             cursor: pointer;
             width: 100%;
-            font-family: 'Space Grotesk';
+            font-family: var(--font-sans);
             font-size: 1.1rem;
-            transition: background 0.2s;
-            margin-top: 10px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 0 20px var(--hyphae-green-glow);
+            box-sizing: border-box;
         }
 
-        .btn-submit:hover {
+        .btn-deploy:hover {
             background: #4adebb;
-            box-shadow: 0 0 15px rgba(100,255,218,0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 0 30px var(--hyphae-green-glow);
         }
 
-        .btn-submit:disabled {
+        .btn-deploy:disabled {
             background: rgba(100, 255, 218, 0.3);
+            color: rgba(0,0,0,0.5);
             cursor: not-allowed;
             box-shadow: none;
-        }
-        
-        .feedback {
-            margin-top: 15px;
-            font-size: 0.9rem;
-            color: #ff6b6b;
-            text-align: center;
-        }
-        
-        .success-feedback {
-            color: #64ffda;
+            transform: none;
         }
 
+        .security-badge-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 18px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+        }
+
+        .security-badge-row span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Status & Animation Overlay */
+        .status-overlay {
+            display: none;
+            background: rgba(5, 11, 8, 0.95);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .status-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(100, 255, 218, 0.2);
+            border-top: 3px solid var(--hyphae-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-text {
+            font-family: var(--font-serif);
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .status-sub {
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            max-width: 450px;
+        }
     </style>
 </head>
 <body>
     <canvas id="mycelium-canvas"></canvas>
 
-    <div class="glass-overlay" style="overflow-y: auto; display: flex; align-items: center;">
-        <div class="auth-container">
-            <h1>Synthesize Identity</h1>
-            <p>Establish your node on the Mycelial network.</p>
-            
-            <div class="auth-box">
-                <form id="signup-form">
-                    <div class="input-group">
-                        <label>Public Username</label>
-                        <input type="text" id="reg-username" placeholder="e.g. soilgrower" required pattern="[a-zA-Z0-9_]{3,}">
-                        <small style="color:rgba(255,255,255,0.4); font-size:0.8rem; display:block; margin-top:4px;">Used for your public CV link: myceliate.cv/username</small>
-                    </div>
+    <div class="checkout-layout">
+        <!-- Header -->
+        <header class="checkout-header">
+            <div class="brand-badge">🌿 Sovereign Node Synthesizer</div>
+            <h1>Initialize Persona Node</h1>
+            <p>Connect Google OAuth, configure your sovereign namespace, and activate instant MCP agent memory.</p>
+        </header>
 
-                    <div class="input-group">
-                        <label>Email Address</label>
-                        <input type="email" id="reg-email" placeholder="node@network.local" required>
+        <div class="checkout-grid">
+            <!-- Left: Plan Breakdown & Tier Selection -->
+            <div class="glass-card">
+                <div class="plan-summary-title">
+                    <span>Order Summary</span>
+                    <span class="discount-tag" id="discount-badge" style="display:none;">25% SAVINGS</span>
+                </div>
+
+                <!-- Plan Tier Picker -->
+                <div class="tier-picker">
+                    <button type="button" class="tier-btn" id="tier-btn-persona" onclick="selectPlan('persona')">
+                        Persona ($4)
+                    </button>
+                    <button type="button" class="tier-btn active" id="tier-btn-swarm" onclick="selectPlan('swarm')">
+                        Swarm ($14)
+                    </button>
+                    <button type="button" class="tier-btn" id="tier-btn-enterprise" onclick="selectPlan('enterprise')">
+                        Enterprise ($49)
+                    </button>
+                </div>
+
+                <!-- Monthly vs Annual Toggle -->
+                <div class="billing-toggle-row">
+                    <div>
+                        <div class="billing-label" style="font-weight:600; color:var(--text-primary);">Billing Cadence</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);" id="billing-sub-label">Billed monthly. Cancel anytime.</div>
                     </div>
+                    <div class="billing-toggle-container">
+                        <span style="font-size:0.85rem; color:var(--text-secondary);">Annual</span>
+                        <label class="switch">
+                            <input type="checkbox" id="billing-switch" onchange="toggleBilling(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Price Line Items -->
+                <div class="price-breakdown">
+                    <div class="breakdown-row">
+                        <span id="plan-name-label">Swarm Collective Substrate</span>
+                        <span id="plan-base-price">$14.00</span>
+                    </div>
+                    <div class="breakdown-row" id="discount-row" style="display:none; color:var(--accent-gold);">
+                        <span>Annual Commitment (25% off)</span>
+                        <span id="discount-amount">-$42.00</span>
+                    </div>
+                    <div class="breakdown-row">
+                        <span>Attestation Ledger Protocol</span>
+                        <span style="color:var(--hyphae-green);">Included (Layer 0)</span>
+                    </div>
+                    <div class="breakdown-row total">
+                        <span>Total Due Today</span>
+                        <span class="total-amount" id="total-price-display">$14.00</span>
+                    </div>
+                </div>
+
+                <!-- Feature Highlights -->
+                <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:12px;">Substrate Capabilities</div>
+                <ul class="plan-feature-list" id="feature-list-container">
+                    <li class="plan-feature-item"><span class="icon">✓</span> <span>10 GB Encrypted Brain Vault & Dynamic 3D Cockpit</span></li>
+                    <li class="plan-feature-item"><span class="icon">✓</span> <span>10 Agent Personas with Model Context Protocol (MCP)</span></li>
+                    <li class="plan-feature-item"><span class="icon">✓</span> <span>One-click Claude Desktop .mcpb bundle generation</span></li>
+                    <li class="plan-feature-item"><span class="icon">✓</span> <span>STIM Protocol thermodynamic attestation ledger</span></li>
+                </ul>
+
+                <div style="margin-top:24px; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
+                    Looking for self-hosted free tier? See our open-source <a href="https://github.com/STIM-Protocol/mycelial-brain-mcp" target="_blank" style="color:var(--hyphae-green); text-decoration:none;">mycelial-brain-mcp repo</a>.
+                </div>
+            </div>
+
+            <!-- Right: Identity & Stripe Payment -->
+            <div class="glass-card">
+                <form id="checkout-form">
+                    <!-- Step 1: Google OAuth -->
+                    <div class="section-subhead"><span>01</span> Identity Authentication</div>
                     
-                    <div class="input-group">
-                        <label>Secure Key (Password)</label>
-                        <input type="password" id="reg-password" placeholder="••••••••" required minlength="6">
+                    <div class="google-auth-box" id="google-auth-box">
+                        <div id="g_id_onload"
+                             data-client_id="1084814124987-1ngdrskh7rvrjooug6vo2o9kdgt1ba8d.apps.googleusercontent.com"
+                             data-callback="handleGoogleCredentialResponse"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_black" data-text="continue_with" data-size="large" data-logo_alignment="left" data-width="100%"></div>
                     </div>
 
-                    <button type="submit" class="btn-submit" id="submit-btn">Initialize Genesis Node</button>
-                    <div id="feedback-msg" class="feedback"></div>
+                    <!-- Verified Google User Card -->
+                    <div class="user-identity-card" id="user-identity-card">
+                        <img id="user-avatar-img" class="user-avatar" src="" alt="Avatar">
+                        <div class="user-info-text">
+                            <div class="user-name-line" id="user-display-name">George Steward</div>
+                            <div class="user-email-line" id="user-display-email">george@gmail.com</div>
+                        </div>
+                        <div class="verified-badge">✓ Google Verified</div>
+                    </div>
+
+                    <div class="divider-line" id="or-divider">or configure credentials manually</div>
+
+                    <!-- Persona Slug -->
+                    <div class="input-group">
+                        <label>Public Persona Node URL</label>
+                        <div class="slug-input-wrapper">
+                            <span class="slug-domain">myceliate.cv/</span>
+                            <input type="text" id="node-slug" placeholder="yourname" required pattern="[a-zA-Z0-9-]{3,30}" oninput="handleSlugInput(this.value)">
+                        </div>
+                        <div id="slug-status" class="slug-feedback"></div>
+                    </div>
+
+                    <div class="input-group" id="email-group">
+                        <label>Email Address</label>
+                        <input type="email" id="user-email" class="text-input" placeholder="operator@network.local" required>
+                    </div>
+
+                    <!-- Step 2: Stripe Elements -->
+                    <div class="section-subhead" style="margin-top:28px;"><span>02</span> Sovereign Payment (Stripe)</div>
+
+                    <div class="stripe-container">
+                        <div id="card-element">
+                            <!-- Stripe Elements injects iframe here -->
+                        </div>
+                        <div id="card-errors" class="card-errors" role="alert"></div>
+                    </div>
+
+                    <button type="submit" class="btn-deploy" id="btn-submit">
+                        <span id="btn-text">Authorize & Deploy Node ($14.00)</span>
+                    </button>
+
+                    <div class="security-badge-row">
+                        <span>🔒 256-Bit TLS</span>
+                        <span>⚡ Instant .mcpb Bridge</span>
+                        <span>🛡️ Layer 0 Attested</span>
+                    </div>
                 </form>
             </div>
-            
-            <a href="/" style="color: rgba(255,255,255,0.5); text-decoration: none; margin-top:30px; display:inline-block;">← Return to Root</a>
         </div>
+
+        <div style="text-align:center; margin-top:40px;">
+            <a href="/" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem; font-family:var(--font-mono);">← Return to Root</a>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div class="status-overlay" id="status-overlay">
+        <div class="status-spinner"></div>
+        <div class="status-text" id="status-title">Synthesizing Genesis Node...</div>
+        <div class="status-sub" id="status-subtitle">Engaging Stripe payment intent and provisioning sovereign memory substrate.</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="/script.js"></script>
+    
     <script>
-        document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submit-btn');
-            const feedback = document.getElementById('feedback-msg');
+        // State
+        let currentPlan = 'swarm';
+        let isAnnual = false;
+        let googleUserData = null;
+        let stripe = null;
+        let cardElement = null;
+        let stripePublishableKey = 'pk_live_51RtzIU4RZRpHKSOYxk15XrNOuNf44jQYTC0hJYMeIqrpdmjxkzOkBodH8pcG2BdRlji9UCooRMrxUPMFdnFnZXGS00nvtiL4Ji';
+        let googleClientId = '1084814124987-1ngdrskh7rvrjooug6vo2o9kdgt1ba8d.apps.googleusercontent.com';
+        let slugDebounceTimeout = null;
+
+        const PLAN_DETAILS = {
+            persona: {
+                name: 'Sovereign Persona Node',
+                monthly: 4,
+                annual: 36,
+                features: [
+                    'Custom persona URL (myceliate.cv/yourname)',
+                    '500 MB Sovereign GCS Brain Bucket',
+                    'Gemini 3 Neural Context Synthesis',
+                    'Dynamic Claude Desktop .mcpb generator',
+                    'Verifiable signal fidelity ledger'
+                ]
+            },
+            swarm: {
+                name: 'Swarm Collective Substrate',
+                monthly: 14,
+                annual: 126,
+                features: [
+                    '10 GB Encrypted Brain Vault & Dynamic 3D Cockpit',
+                    '10 Agent Personas with Model Context Protocol (MCP)',
+                    'One-click Claude Desktop .mcpb bundle generation',
+                    'STIM Protocol thermodynamic attestation ledger',
+                    'Unlimited high-throughput MCP query routing'
+                ]
+            },
+            enterprise: {
+                name: 'Enterprise Substrate',
+                monthly: 49,
+                annual: 441,
+                features: [
+                    'Custom domain routing (yourdomain.com)',
+                    'Dedicated Cloud Run container & isolated storage',
+                    '50 GB High-Throughput Memory Bucket',
+                    'Unlimited agent personas & subgraphs',
+                    'Full data sovereignty export & priority SLA'
+                ]
+            }
+        };
+
+        // Initialize URL query parameters & Stripe
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const planParam = urlParams.get('plan');
+            const billingParam = urlParams.get('billing');
+
+            if (planParam && PLAN_DETAILS[planParam.toLowerCase()]) {
+                currentPlan = planParam.toLowerCase();
+            }
+            if (billingParam && billingParam.toLowerCase() === 'annual') {
+                isAnnual = true;
+                document.getElementById('billing-switch').checked = true;
+            }
+
+            // Fetch live API config if available
+            try {
+                const cfgRes = await fetch('/api/config');
+                if (cfgRes.ok) {
+                    const cfg = await cfgRes.json();
+                    if (cfg.stripePublishableKey) stripePublishableKey = cfg.stripePublishableKey;
+                    if (cfg.googleClientId) googleClientId = cfg.googleClientId;
+                }
+            } catch (e) {}
+
+            renderPlanUI();
+            initStripe();
+        });
+
+        function renderPlanUI() {
+            // Update tier buttons
+            ['persona', 'swarm', 'enterprise'].forEach(p => {
+                const btn = document.getElementById('tier-btn-' + p);
+                if (btn) {
+                    btn.classList.toggle('active', p === currentPlan);
+                }
+            });
+
+            const plan = PLAN_DETAILS[currentPlan];
+            const price = isAnnual ? plan.annual : plan.monthly;
+            const periodStr = isAnnual ? '/ year' : '/ month';
+
+            document.getElementById('plan-name-label').textContent = plan.name;
+            document.getElementById('plan-base-price').textContent = '$' + (isAnnual ? (plan.monthly * 12).toFixed(2) : plan.monthly.toFixed(2));
+            document.getElementById('total-price-display').textContent = '$' + price.toFixed(2);
             
-            const username = document.getElementById('reg-username').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const password = document.getElementById('reg-password').value;
-            
-            btn.disabled = true;
-            btn.textContent = 'Synthesizing...';
-            feedback.textContent = '';
-            feedback.className = 'feedback';
+            const btnText = document.getElementById('btn-text');
+            if (btnText) {
+                btnText.textContent = 'Authorize & Deploy Node ($' + price.toFixed(2) + periodStr + ')';
+            }
+
+            const discountBadge = document.getElementById('discount-badge');
+            const discountRow = document.getElementById('discount-row');
+            const billingSub = document.getElementById('billing-sub-label');
+
+            if (isAnnual) {
+                const savings = (plan.monthly * 12) - plan.annual;
+                discountBadge.style.display = 'inline-block';
+                discountRow.style.display = 'flex';
+                document.getElementById('discount-amount').textContent = '-$' + savings.toFixed(2);
+                billingSub.textContent = 'Billed annually ($' + plan.annual + '/yr). Save 25%.';
+            } else {
+                discountBadge.style.display = 'none';
+                discountRow.style.display = 'none';
+                billingSub.textContent = 'Billed monthly. Cancel anytime.';
+            }
+
+            // Render features
+            const featContainer = document.getElementById('feature-list-container');
+            featContainer.innerHTML = plan.features.map(f => `
+                <li class="plan-feature-item">
+                    <span class="icon">✓</span>
+                    <span>${f}</span>
+                </li>
+            `).join('');
+        }
+
+        function selectPlan(planKey) {
+            currentPlan = planKey;
+            renderPlanUI();
+        }
+
+        function toggleBilling(checked) {
+            isAnnual = checked;
+            renderPlanUI();
+        }
+
+        // Slug live availability check
+        function handleSlugInput(val) {
+            clearTimeout(slugDebounceTimeout);
+            const status = document.getElementById('slug-status');
+            const clean = val.trim().toLowerCase();
+
+            if (!clean || clean.length < 3) {
+                status.className = 'slug-feedback';
+                status.textContent = '3-30 lowercase characters (letters, numbers, hyphens)';
+                return;
+            }
+
+            status.className = 'slug-feedback checking';
+            status.textContent = 'Checking availability...';
+
+            slugDebounceTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch('/api/check-slug?slug=' + encodeURIComponent(clean));
+                    const data = await res.json();
+                    if (data.available) {
+                        status.className = 'slug-feedback available';
+                        status.textContent = '✓ myceliate.cv/' + clean + ' is available';
+                    } else {
+                        status.className = 'slug-feedback taken';
+                        status.textContent = data.message || 'Slug is unavailable.';
+                    }
+                } catch (e) {
+                    status.className = 'slug-feedback';
+                    status.textContent = 'Availability check offline.';
+                }
+            }, 300);
+        }
+
+        // Handle Google Identity Services credential response
+        window.handleGoogleCredentialResponse = async function(response) {
+            const credential = response.credential;
+            if (!credential) return;
 
             try {
-                const res = await fetch('/api/signup', {
+                // Decode token payload locally for instant UI update
+                const parts = credential.split('.');
+                const payload = JSON.parse(atob(parts[1]));
+
+                googleUserData = {
+                    credential,
+                    email: payload.email,
+                    name: payload.name,
+                    picture: payload.picture
+                };
+
+                // Update UI state
+                document.getElementById('google-auth-box').style.display = 'none';
+                document.getElementById('or-divider').style.display = 'none';
+                document.getElementById('email-group').style.display = 'none';
+
+                const identityCard = document.getElementById('user-identity-card');
+                identityCard.style.display = 'flex';
+                document.getElementById('user-display-name').textContent = payload.name;
+                document.getElementById('user-display-email').textContent = payload.email;
+                if (payload.picture) {
+                    document.getElementById('user-avatar-img').src = payload.picture;
+                } else {
+                    document.getElementById('user-avatar-img').style.display = 'none';
+                }
+
+                // Prefill slug if empty
+                const slugInput = document.getElementById('node-slug');
+                if (!slugInput.value) {
+                    const suggested = payload.email.split('@')[0].toLowerCase().replace(/[^a-z0-9-]/g, '');
+                    slugInput.value = suggested;
+                    handleSlugInput(suggested);
+                }
+
+                // Call backend Google auth
+                await fetch('/api/auth/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, password })
+                    body: JSON.stringify({
+                        credential,
+                        plan: currentPlan,
+                        billing: isAnnual ? 'annual' : 'monthly',
+                        preferred_username: slugInput.value
+                    })
                 });
-                
-                const data = await res.json();
-                
-                if (!res.ok) {
-                    throw new Error(data.error || 'Initialization failed.');
-                }
-                
-                feedback.textContent = 'Account synthesized! Please check your email for the verification link before logging in.';
-                feedback.classList.add('success-feedback');
-                
-                // Redirect to pricing funnel after wait
-                setTimeout(() => {
-                    window.location.href = '/pricing.html';
-                }, 4000);
-                
+
+            } catch (e) {
+                console.error("Google Credential Error:", e);
+            }
+        };
+
+        // Initialize Stripe Elements
+        function initStripe() {
+            if (typeof Stripe === 'undefined') {
+                setTimeout(initStripe, 200);
+                return;
+            }
+
+            try {
+                stripe = Stripe(stripePublishableKey);
+                const elements = stripe.elements();
+
+                cardElement = elements.create('card', {
+                    style: {
+                        base: {
+                            color: '#e2f1e8',
+                            fontFamily: 'Space Grotesk, sans-serif',
+                            fontSmoothing: 'antialiased',
+                            fontSize: '16px',
+                            '::placeholder': {
+                                color: '#64748b'
+                            },
+                            iconColor: '#64ffda'
+                        },
+                        invalid: {
+                            color: '#ff6b6b',
+                            iconColor: '#ff6b6b'
+                        }
+                    },
+                    hidePostalCode: false
+                });
+
+                cardElement.mount('#card-element');
+
+                cardElement.on('change', (event) => {
+                    const displayError = document.getElementById('card-errors');
+                    if (event.error) {
+                        displayError.textContent = event.error.message;
+                    } else {
+                        displayError.textContent = '';
+                    }
+                });
+
             } catch (err) {
-                feedback.textContent = err.message;
-                btn.disabled = false;
-                btn.textContent = 'Initialize Genesis Node';
+                console.warn("Stripe Elements mounting simulation:", err);
+            }
+        }
+
+        // Handle Form Submission & Node Deployment
+        document.getElementById('checkout-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const slug = document.getElementById('node-slug').value.trim().toLowerCase();
+            const emailInput = document.getElementById('user-email');
+            const email = googleUserData ? googleUserData.email : (emailInput ? emailInput.value.trim() : '');
+            const displayName = googleUserData ? googleUserData.name : slug;
+
+            if (!slug) {
+                alert("Please specify a persona node URL.");
+                return;
+            }
+
+            const overlay = document.getElementById('status-overlay');
+            const title = document.getElementById('status-title');
+            const sub = document.getElementById('status-subtitle');
+            const submitBtn = document.getElementById('btn-submit');
+
+            submitBtn.disabled = true;
+            overlay.style.display = 'flex';
+
+            try {
+                // Step 1: Create Payment Intent
+                title.textContent = "Synthesizing Payment Intent...";
+                sub.textContent = "Connecting with Stripe and securing cryptographic credentials.";
+
+                const intentRes = await fetch('/api/create-payment-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plan: currentPlan,
+                        billing: isAnnual ? 'annual' : 'monthly',
+                        username: slug,
+                        email,
+                        displayName
+                    })
+                });
+
+                const intentData = await intentRes.json();
+
+                // Step 2: Confirm Payment via Stripe or Simulated Bridge
+                title.textContent = "Confirming Substrate Subscription...";
+                sub.textContent = "Authorizing transaction and provisioning sovereign GCS bucket.";
+
+                let paymentIntentId = 'pi_live_direct_' + Date.now();
+
+                if (stripe && cardElement && intentData.clientSecret && !intentData.simulated) {
+                    const result = await stripe.confirmCardPayment(intentData.clientSecret, {
+                        payment_method: {
+                            card: cardElement,
+                            billing_details: {
+                                name: displayName,
+                                email: email
+                            }
+                        }
+                    });
+
+                    if (result.error) {
+                        throw new Error(result.error.message);
+                    }
+                    paymentIntentId = result.paymentIntent.id;
+                }
+
+                // Step 3: Finalize Persona Node Provisioning
+                title.textContent = "Activating Sovereign Persona Node...";
+                sub.textContent = "Generating Model Context Protocol (MCP) Bearer key and .mcpb bundle.";
+
+                const provRes = await fetch('/api/confirm-payment-provision', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: slug,
+                        email,
+                        displayName,
+                        plan: currentPlan,
+                        billing: isAnnual ? 'annual' : 'monthly',
+                        paymentIntentId
+                    })
+                });
+
+                const provData = await provRes.json();
+
+                if (!provRes.ok) {
+                    throw new Error(provData.error || 'Node activation failed.');
+                }
+
+                title.textContent = "Persona Node Activated!";
+                sub.textContent = 'Your sovereign node is online at myceliate.cv/' + provData.username + '. Launching brain seeding...';
+
+                setTimeout(() => {
+                    window.location.href = provData.redirect || '/onboarding';
+                }, 1500);
+
+            } catch (err) {
+                console.error("Checkout Failure:", err);
+                overlay.style.display = 'none';
+                submitBtn.disabled = false;
+                document.getElementById('card-errors').textContent = err.message || 'Payment could not be processed. Please check your details.';
             }
         });
     </script>
