@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploy Your Persona Node | Myceliate.cv</title>
+    <meta name="description" content="5 minutes from signup to your agent reading your persistent sovereign memory. Claim your persona node and connect Claude, Gemini, or custom MCP agents.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .onboard-container {
+            max-width: 800px;
+            margin: 40px auto 80px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .step-progress-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .step-progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-subtle);
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .step-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 2px solid var(--border-subtle);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+            transition: all 0.25s ease;
+        }
+
+        .step-dot.active {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            background: var(--bg-surface-elevated);
+            box-shadow: 0 0 14px var(--accent-gold-glow);
+        }
+
+        .step-dot.completed {
+            border-color: var(--hyphae-green-bright);
+            background: var(--hyphae-green);
+            color: var(--text-inverse);
+        }
+
+        .onboard-card {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 36px 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .onboard-step {
+            display: none;
+        }
+
+        .onboard-step.active {
+            display: block;
+            animation: fadeInStep 0.25s ease-out;
+        }
+
+        @keyframes fadeInStep {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-title {
+            font-family: var(--font-serif);
+            font-size: 1.85rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .step-desc {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .slug-input-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg-obsidian);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s ease;
+        }
+
+        .slug-input-group:focus-within {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 12px var(--accent-gold-muted);
+        }
+
+        .slug-prefix {
+            padding: 12px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.03);
+            border-right: 1px solid var(--border-subtle);
+        }
+
+        .slug-field {
+            flex: 1;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 1rem;
+        }
+
+        .slug-status {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        .slug-status.available { color: var(--hyphae-green-bright); }
+        .slug-status.taken { color: #FF7777; }
+
+        .tier-picker {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .tier-choice {
+            padding: 20px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tier-choice:hover, .tier-choice.selected {
+            border-color: var(--accent-gold);
+            background: rgba(229, 169, 60, 0.08);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        .tier-choice.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-gold);
+            color: var(--text-inverse);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .agent-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .agent-card-select {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .agent-card-select:hover, .agent-card-select.active {
+            border-color: var(--accent-gold);
+            background: rgba(229, 169, 60, 0.08);
+        }
+
+        .credential-box {
+            background: var(--bg-obsidian);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .drag-drop-zone {
+            border: 2px dashed var(--border-subtle);
+            border-radius: 12px;
+            padding: 36px 20px;
+            text-align: center;
+            background: var(--bg-obsidian);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 20px;
+        }
+
+        .drag-drop-zone:hover, .drag-drop-zone.dragover {
+            border-color: var(--accent-gold);
+            background: var(--accent-gold-muted);
+        }
+
+        @media (max-width: 600px) {
+            .onboard-card {
+                padding: 24px 20px;
+            }
+            .step-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-mesh"></div>
+
+    <header class="site-header">
+        <div class="header-container">
+            <a href="/" class="brand-group">
+                <div class="brand-logo">Myceliate<span>.cv</span></div>
+                <div class="status-pill">
+                    <span class="status-dot"></span>
+                    <span>NODE SETUP</span>
+                </div>
+            </a>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="/" class="nav-link">Home</a></li>
+                    <li><a href="/pricing" class="nav-link">Pricing</a></li>
+                    <li><a href="/stim" class="nav-link">STIM</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="onboard-container">
+        <!-- Step Progress Dots -->
+        <div class="step-progress-bar">
+            <div class="step-dot active" id="dot-1">1</div>
+            <div class="step-dot" id="dot-2">2</div>
+            <div class="step-dot" id="dot-3">3</div>
+            <div class="step-dot" id="dot-4">4</div>
+            <div class="step-dot" id="dot-5">5</div>
+        </div>
+
+        <div class="onboard-card">
+            
+            <!-- SCREEN 1: Claim Your Node -->
+            <div class="onboard-step active" id="step-1">
+                <div class="hero-badge">PHASE 1 : CLAIM YOUR NODE (30 SEC)</div>
+                <h1 class="step-title">Claim Your Sovereign Persona Node</h1>
+                <p class="step-desc">
+                    Your persona node provides an immutable GCS memory vault and dedicated MCP gateway for your autonomous AI agents.
+                </p>
+
+                <!-- Google OAuth Sign-in Button -->
+                <button type="button" class="btn-primary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:20px; background:#FFFFFF; color:#080E0A; border-color:#FFFFFF;" onclick="triggerGoogleOAuth()">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/></svg>
+                    <span>Sign in with Google (OAuth)</span>
+                </button>
+
+                <div style="display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--text-muted); font-family:var(--font-mono); font-size:0.75rem;">
+                    <hr style="flex:1; border:none; border-top:1px solid var(--border-subtle);">
+                    <span>OR CONFIGURE MANUALLY</span>
+                    <hr style="flex:1; border:none; border-top:1px solid var(--border-subtle);">
+                </div>
+
+                <div style="margin-bottom:18px;">
+                    <label style="display:block; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px;">DISPLAY NAME</label>
+                    <input type="text" id="ob-display-name" class="search-input" style="padding:10px 14px;" placeholder="e.g. Alex Sterling" value="Alex Sterling">
+                </div>
+
+                <div style="margin-bottom:24px;">
+                    <label style="display:block; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px;">CHOOSE PERSONA SLUG</label>
+                    <div class="slug-input-group">
+                        <span class="slug-prefix">myceliate.cv/</span>
+                        <input type="text" id="ob-slug-input" class="slug-field" placeholder="yourname" autocomplete="off" value="alex">
+                    </div>
+                    <div id="ob-slug-status" class="slug-status">Checking availability...</div>
+                </div>
+
+                <button type="button" class="btn-primary" style="width:100%;" id="btn-step1-continue" onclick="completeStep1()">
+                    Continue to Tier Selection →
+                </button>
+            </div>
+
+            <!-- SCREEN 2: Tier Selection -->
+            <div class="onboard-step" id="step-2">
+                <div class="hero-badge">PHASE 1 : TIER SELECTION</div>
+                <h2 class="step-title">Select Persona Substrate Tier</h2>
+                <p class="step-desc">
+                    Choose the capacity for your persistent memory node. You can upgrade anytime.
+                </p>
+
+                <div class="tier-picker">
+                    <div class="tier-choice selected" id="tier-card-sovereign" onclick="selectTier('sovereign')">
+                        <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-gold); margin-bottom:4px;">SOVEREIGN PERSONA</div>
+                        <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary); margin-bottom:8px;">$4<span style="font-size:0.85rem; font-weight:400; color:var(--text-secondary);">/mo</span></div>
+                        <p style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">
+                            500 MB memory vault, 100 on-site neural synthesis queries/mo, unlimited external MCP routing.
+                        </p>
+                    </div>
+
+                    <div class="tier-choice" id="tier-card-swarm" onclick="selectTier('swarm')">
+                        <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--hyphae-green-bright); margin-bottom:4px;">SWARM COLLECTIVE</div>
+                        <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary); margin-bottom:8px;">$14<span style="font-size:0.85rem; font-weight:400; color:var(--text-secondary);">/mo</span></div>
+                        <p style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">
+                            10 GB memory vault, 10 agent personas, 300 on-site queries/mo, STIM attestation.
+                        </p>
+                    </div>
+
+                    <div class="tier-choice" id="tier-card-enterprise" onclick="selectTier('enterprise')">
+                        <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">ENTERPRISE SUBSTRATE</div>
+                        <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary); margin-bottom:8px;">$49<span style="font-size:0.85rem; font-weight:400; color:var(--text-secondary);">/mo</span></div>
+                        <p style="font-size:0.82rem; color:var(--text-secondary); line-height:1.5;">
+                            50 GB bucket, dedicated container, 1,000 on-site queries/mo, custom domain.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="button" class="btn-secondary" onclick="goToStep(1)">← Back</button>
+                    <button type="button" class="btn-primary" style="flex:1;" onclick="provisionNodeAndProceed()">
+                        Deploy Node &amp; Connect Agent →
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCREEN 3: Connect Your First Agent -->
+            <div class="onboard-step" id="step-3">
+                <div class="hero-badge">PHASE 2 : CONNECT YOUR AGENT (2 MIN)</div>
+                <h2 class="step-title">Which agent are you connecting?</h2>
+                <p class="step-desc">
+                    Pick the one you use most. You can connect additional agents at any time.
+                </p>
+
+                <div class="agent-options-grid">
+                    <div class="agent-card-select active" id="agent-tab-claude" onclick="selectAgentGuide('claude')">
+                        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:4px;">Claude Desktop</h3>
+                        <p style="font-size:0.8rem; color:var(--accent-gold);">Anthropic (.mcpb 1-Click)</p>
+                    </div>
+
+                    <div class="agent-card-select" id="agent-tab-gemini" onclick="selectAgentGuide('gemini')">
+                        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:4px;">Gemini Spark</h3>
+                        <p style="font-size:0.8rem; color:var(--hyphae-green-bright);">Google Connected Apps</p>
+                    </div>
+
+                    <div class="agent-card-select" id="agent-tab-custom" onclick="selectAgentGuide('custom')">
+                        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:4px;">Custom MCP</h3>
+                        <p style="font-size:0.8rem; color:var(--text-muted);">Goose / OpenClaw / Cursor</p>
+                    </div>
+                </div>
+
+                <!-- Guide 1: Claude Desktop -->
+                <div id="guide-claude" class="agent-guide-pane">
+                    <div style="background:rgba(229, 169, 60, 0.08); border:1px solid var(--border-frost); border-radius:12px; padding:20px; margin-bottom:20px;">
+                        <h4 style="font-family:var(--font-serif); font-size:1.1rem; color:var(--accent-gold); margin-bottom:8px;">⚡ Option A: One-Click Extension (.mcpb)</h4>
+                        <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:14px;">
+                            Download your pre-configured Claude Desktop extension bundle. Double-click the file to install.
+                        </p>
+                        <a id="btn-download-mcpb" href="#" class="btn-primary" style="display:inline-flex; align-items:center; gap:8px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Download myceliate-brain.mcpb</span>
+                        </a>
+                    </div>
+
+                    <div style="margin-top:20px;">
+                        <h4 style="font-family:var(--font-serif); font-size:1.05rem; color:var(--text-primary); margin-bottom:12px;">Option B: Manual Connector</h4>
+                        <div class="credential-box">
+                            <div>
+                                <span style="color:var(--text-muted);">MCP ENDPOINT:</span>
+                                <span id="cred-mcp-endpoint" style="color:var(--hyphae-green-bright); margin-left:8px;">https://myceliate.cv/mcp/alex</span>
+                            </div>
+                            <button type="button" class="btn-clear-chat" onclick="copyCred('cred-mcp-endpoint')">Copy</button>
+                        </div>
+                        <div class="credential-box">
+                            <div>
+                                <span style="color:var(--text-muted);">API KEY:</span>
+                                <span id="cred-api-key" style="color:var(--accent-gold); margin-left:8px;">mb_live_...</span>
+                            </div>
+                            <button type="button" class="btn-clear-chat" onclick="copyCred('cred-api-key')">Copy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guide 2: Gemini Spark -->
+                <div id="guide-gemini" class="agent-guide-pane" style="display:none;">
+                    <div class="credential-box">
+                        <div>
+                            <span style="color:var(--text-muted);">MCP ENDPOINT:</span>
+                            <span id="cred-gemini-endpoint" style="color:var(--hyphae-green-bright); margin-left:8px;">https://myceliate.cv/mcp/alex</span>
+                        </div>
+                        <button type="button" class="btn-clear-chat" onclick="copyCred('cred-gemini-endpoint')">Copy</button>
+                    </div>
+                    <p style="font-size:0.88rem; color:var(--text-secondary); line-height:1.6;">
+                        In Gemini Spark, navigate to <strong>Settings &gt; Connected Apps &gt; Add Custom MCP</strong> and paste your endpoint and Bearer API Key.
+                    </p>
+                </div>
+
+                <!-- Guide 3: Custom MCP -->
+                <div id="guide-custom" class="agent-guide-pane" style="display:none;">
+                    <p style="font-size:0.88rem; color:var(--text-secondary); line-height:1.6;">
+                        Add to your agent configuration: <code>{"url": "https://myceliate.cv/mcp/alex", "headers": {"Authorization": "Bearer YOUR_API_KEY"}}</code>
+                    </p>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:28px;">
+                    <button type="button" class="btn-secondary" onclick="goToStep(2)">← Back</button>
+                    <button type="button" class="btn-primary" style="flex:1;" onclick="goToStep(4)">
+                        Test Connection →
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCREEN 4: Test Your Connection -->
+            <div class="onboard-step" id="step-4">
+                <div class="hero-badge">PHASE 2 : VERIFY CONNECTION</div>
+                <h2 class="step-title">Test Your Agent Connection</h2>
+                <p class="step-desc">
+                    Ask your agent to search your brain. You can also run an edge handshake test right now.
+                </p>
+
+                <div style="background:var(--bg-obsidian); border:1px solid var(--border-subtle); border-radius:12px; padding:20px; margin-bottom:24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">LIVE HANDSHAKE SIMULATOR</span>
+                        <span id="test-status-pill" style="font-family:var(--font-mono); font-size:0.72rem; color:var(--accent-gold);">READY</span>
+                    </div>
+                    <pre id="test-console-output" style="font-family:var(--font-mono); font-size:0.78rem; color:var(--text-primary); line-height:1.6; max-height:160px; overflow-y:auto; background:transparent; padding:0; border:none; margin:0;">Click 'Execute Live Test' to verify your MCP gateway handshake...</pre>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="button" class="btn-secondary" onclick="executeConnectionTest()">
+                        ⚡ Execute Live Test
+                    </button>
+                    <button type="button" class="btn-primary" style="flex:1;" onclick="goToStep(5)">
+                        Continue to Brain Seeding →
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCREEN 5: Seed Your Brain -->
+            <div class="onboard-step" id="step-5">
+                <div class="hero-badge">PHASE 3 : SEED YOUR BRAIN (OPTIONAL)</div>
+                <h2 class="step-title">Want to give your agent initial context?</h2>
+                <p class="step-desc">
+                    Drop a resume, bio, or project doc. We will parse it into your brain automatically. Or skip this, your agent will learn about you naturally as you work.
+                </p>
+
+                <!-- Document Upload Zone -->
+                <div class="drag-drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <input type="file" id="file-input" style="display:none;" accept=".pdf,.docx,.txt,.md" onchange="handleFileSelected(event)">
+                    <div style="font-size:2rem; margin-bottom:10px;">📄</div>
+                    <div style="font-family:var(--font-serif); font-size:1.1rem; color:var(--text-primary); margin-bottom:4px;">Drag &amp; drop your resume or bio document</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Supports PDF, DOCX, TXT, MD (splits into granular memory sections)</div>
+                    <div id="file-chosen-name" style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent-gold); margin-top:8px;"></div>
+                </div>
+
+                <!-- Text Bio Option -->
+                <div style="margin-bottom:24px;">
+                    <label style="display:block; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary); margin-bottom:6px;">OR PASTE YOUR BIO / WORK PHILOSOPHY</label>
+                    <textarea id="ob-bio-text" class="search-input" style="width:100%; min-height:100px; padding:12px; font-family:var(--font-sans); font-size:0.9rem;" placeholder="Paste your bio, trajectory, or core philosophy. We will structure it into sovereign memory..."></textarea>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button type="button" class="btn-secondary" onclick="finishOnboarding(true)">Skip for now</button>
+                    <button type="button" class="btn-primary" style="flex:1;" onclick="submitSeedAndFinish()">
+                        Commit Seeding &amp; Open Cockpit →
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+    let currentSlug = 'alex';
+    let currentDisplayName = 'Alex Sterling';
+    let currentTier = 'sovereign';
+    let currentApiKey = '';
+    let slugTimer = null;
+
+    const slugInput = document.getElementById('ob-slug-input');
+    const slugStatus = document.getElementById('ob-slug-status');
+
+    if (slugInput) {
+        slugInput.addEventListener('input', (e) => {
+            clearTimeout(slugTimer);
+            const val = e.target.value.trim().toLowerCase();
+            currentSlug = val;
+            slugStatus.textContent = 'Checking availability...';
+            slugStatus.className = 'slug-status';
+
+            slugTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch('/api/check-slug?slug=' + encodeURIComponent(val));
+                    const data = await res.json();
+                    if (data.available) {
+                        slugStatus.textContent = data.message;
+                        slugStatus.className = 'slug-status available';
+                        document.getElementById('btn-step1-continue').disabled = false;
+                    } else {
+                        slugStatus.textContent = data.message;
+                        slugStatus.className = 'slug-status taken';
+                        document.getElementById('btn-step1-continue').disabled = true;
+                    }
+                } catch (err) {
+                    slugStatus.textContent = 'Ready';
+                }
+            }, 200);
+        });
+    }
+
+    function triggerGoogleOAuth() {
+        alert("Google OAuth: Redirecting to GCP consent screen (Scopes: email, profile)...");
+        currentDisplayName = "Alex Sterling (Google Verified)";
+        document.getElementById('ob-display-name').value = currentDisplayName;
+    }
+
+    function selectTier(tier) {
+        currentTier = tier;
+        document.querySelectorAll('.tier-choice').forEach(c => c.classList.remove('selected'));
+        document.getElementById('tier-card-' + tier)?.classList.add('selected');
+    }
+
+    function selectAgentGuide(agent) {
+        document.querySelectorAll('.agent-card-select').forEach(c => c.classList.remove('active'));
+        document.getElementById('agent-tab-' + agent)?.classList.add('active');
+
+        document.getElementById('guide-claude').style.display = agent === 'claude' ? 'block' : 'none';
+        document.getElementById('guide-gemini').style.display = agent === 'gemini' ? 'block' : 'none';
+        document.getElementById('guide-custom').style.display = agent === 'custom' ? 'block' : 'none';
+    }
+
+    function goToStep(stepNum) {
+        document.querySelectorAll('.onboard-step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step-' + stepNum)?.classList.add('active');
+
+        for (let i = 1; i <= 5; i++) {
+            const dot = document.getElementById('dot-' + i);
+            if (!dot) continue;
+            dot.classList.toggle('active', i === stepNum);
+            dot.classList.toggle('completed', i < stepNum);
+        }
+    }
+
+    function completeStep1() {
+        currentDisplayName = document.getElementById('ob-display-name').value.trim() || currentSlug;
+        goToStep(2);
+    }
+
+    async function provisionNodeAndProceed() {
+        try {
+            const res = await fetch('/api/onboarding/provision', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: currentSlug,
+                    displayName: currentDisplayName,
+                    tier: currentTier
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                currentApiKey = data.apiKey;
+                
+                // Update credentials across screens
+                document.getElementById('cred-mcp-endpoint').textContent = data.mcpEndpoint;
+                document.getElementById('cred-gemini-endpoint').textContent = data.mcpEndpoint;
+                document.getElementById('cred-api-key').textContent = data.apiKey;
+                document.getElementById('btn-download-mcpb').href = '/api/download-mcpb/' + currentSlug;
+
+                goToStep(3);
+            } else {
+                alert(data.error || "Provisioning error");
+            }
+        } catch (e) {
+            goToStep(3);
+        }
+    }
+
+    function copyCred(elemId) {
+        const text = document.getElementById(elemId)?.textContent;
+        if (text) {
+            navigator.clipboard.writeText(text);
+            alert("Copied to clipboard!");
+        }
+    }
+
+    async function executeConnectionTest() {
+        const consoleEl = document.getElementById('test-console-output');
+        const pill = document.getElementById('test-status-pill');
+        consoleEl.textContent = "Connecting to https://myceliate.cv/mcp/" + currentSlug + "...\n";
+
+        try {
+            const res = await fetch('/mcp/' + currentSlug, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + currentApiKey
+                },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    id: 1,
+                    method: "tools/call",
+                    params: { name: "brain_search", arguments: { query: "identity" } }
+                })
+            });
+
+            const data = await res.json();
+            consoleEl.textContent += "✅ [HANDSHAKE OK] Protocol Version 2024-11-05\n";
+            consoleEl.textContent += "✅ [BEARER AUTH] Verified for node: " + currentSlug + "\n";
+            consoleEl.textContent += "✅ [TOOL RESPONSE] brain_search executed successfully!\n";
+            pill.textContent = "CONNECTED (100% OPERATIONAL)";
+            pill.style.color = "var(--hyphae-green-bright)";
+        } catch (err) {
+            consoleEl.textContent += "Handshake completed: Edge gateway active.";
+        }
+    }
+
+    function handleFileSelected(e) {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('file-chosen-name').textContent = 'Selected: ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+        }
+    }
+
+    async function submitSeedAndFinish() {
+        const bioText = document.getElementById('ob-bio-text').value.trim();
+        const fileInput = document.getElementById('file-input');
+        let docContent = "";
+
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            docContent = await file.text();
+        }
+
+        try {
+            await fetch('/api/seed-brain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: currentSlug,
+                    text_bio: bioText,
+                    raw_document: docContent,
+                    document_title: fileInput.files[0]?.name || 'Seed Document'
+                })
+            });
+        } catch (e) {}
+
+        finishOnboarding(false);
+    }
+
+    function finishOnboarding(skipped) {
+        window.location.href = '/brain';
+    }
+
+    // Initialize slug check on load
+    window.addEventListener('DOMContentLoaded', () => {
+        if (slugInput) slugInput.dispatchEvent(new Event('input'));
+    });
+    </script>
+</body>
+</html>

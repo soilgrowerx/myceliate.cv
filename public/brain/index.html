@@ -776,7 +776,127 @@
             border: 1px solid var(--border-subtle);
             color: var(--accent-gold);
         }
-    </style>
+    
+        /* Mobile Responsive View Modes */
+        .mobile-view-tabs {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            html, body {
+                overflow: hidden;
+                height: 100dvh;
+            }
+
+            .operator-topbar {
+                padding: 0 12px;
+                gap: 8px;
+            }
+
+            .workspace-logo {
+                font-size: 1.05rem;
+            }
+
+            .workspace-badge {
+                display: none;
+            }
+
+            .topbar-right .btn-topbar span.long-text {
+                display: none;
+            }
+
+            .mobile-view-tabs {
+                display: flex;
+                background: var(--bg-surface);
+                border-bottom: 1px solid var(--border-subtle);
+                padding: 6px 10px;
+                gap: 6px;
+                z-index: 50;
+            }
+
+            .mobile-view-btn {
+                flex: 1;
+                padding: 7px 10px;
+                background: var(--bg-obsidian);
+                border: 1px solid var(--border-subtle);
+                border-radius: var(--radius-sm);
+                color: var(--text-muted);
+                font-family: var(--font-mono);
+                font-size: 0.72rem;
+                cursor: pointer;
+                text-align: center;
+                transition: all 0.15s ease;
+            }
+
+            .mobile-view-btn.active {
+                background: var(--bg-surface-elevated);
+                border-color: var(--accent-gold);
+                color: var(--accent-gold);
+                font-weight: 600;
+            }
+
+            .workspace-layout {
+                display: flex;
+                flex-direction: column;
+                height: calc(100dvh - var(--topbar-height) - 45px);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .panel-left, .panel-center, .panel-right {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: none;
+                border: none;
+            }
+
+            /* Active Mobile Mode Controls */
+            body.mobile-mode-reader .panel-center {
+                display: flex;
+                z-index: 20;
+            }
+
+            body.mobile-mode-directory .panel-left {
+                display: flex;
+                z-index: 20;
+            }
+
+            body.mobile-mode-cockpit .panel-right {
+                display: flex;
+                z-index: 20;
+            }
+
+            .reader-header {
+                padding: 12px 14px;
+                gap: 10px;
+            }
+
+            .doc-title-main {
+                font-size: 1.2rem;
+            }
+
+            .reader-scroll-area {
+                padding: 16px 14px 40px;
+            }
+
+            .reader-content {
+                font-size: 0.98rem;
+                line-height: 1.7;
+            }
+
+            .reader-content h1 { font-size: 1.5rem; }
+            .reader-content h2 { font-size: 1.25rem; }
+            .reader-content h3 { font-size: 1.1rem; }
+
+            .search-container {
+                padding: 8px 12px;
+            }
+        }
+
+</style>
 </head>
 <body>
 
@@ -1054,7 +1174,7 @@
             allDocs = DEFAULT_DOC_INDEX;
         }
 
-        renderDocList();
+        renderDocList(); if (window.innerWidth <= 900) switchMobileView('reader');
 
         const urlParams = new URLSearchParams(window.location.search);
         const reqDoc = urlParams.get('doc') || 'doc-1';
@@ -1468,6 +1588,26 @@
     }
 
     // Initialize Dashboard
+    
+    // Mobile View Controller
+    function switchMobileView(mode) {
+        document.body.classList.remove('mobile-mode-reader', 'mobile-mode-directory', 'mobile-mode-cockpit');
+        document.body.classList.add('mobile-mode-' + mode);
+
+        document.getElementById('mob-btn-reader')?.classList.toggle('active', mode === 'reader');
+        document.getElementById('mob-btn-directory')?.classList.toggle('active', mode === 'directory');
+        document.getElementById('mob-btn-cockpit')?.classList.toggle('active', mode === 'cockpit');
+
+        if (mode === 'cockpit') {
+            const docObj = allDocs.find(d => d.path === currentDocId) || { path: currentDocId };
+            updateGraph(currentDocId, docObj);
+        }
+    }
+    window.switchMobileView = switchMobileView;
+
+    // Default mobile mode
+    document.body.classList.add('mobile-mode-reader');
+
     window.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
