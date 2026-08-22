@@ -221,6 +221,8 @@ if (process.env.GEMINI_API_KEY) {
 }
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.text({ type: ['text/plain', 'text/markdown'] }));
 
 // Enable CORS and Security Headers
 app.use((req, res, next) => {
@@ -715,57 +717,106 @@ app.post('/mcp/:username', async (req, res) => {
     return res.json({ jsonrpc: '2.0', id, error: { code: -32601, message: `Method '${method}' not supported` } });
 });
 
-// Multi-Modal Brain Seeding Pipeline (PDF / DOCX / TXT / Bio)
+// Multi-Modal Brain Seeding Pipeline (PDF / DOCX / TXT / Bio / Universal Payload)
 app.post('/api/seed-brain', (req, res) => {
-    const { username, text_bio, raw_document, document_title } = req.body;
-    const cleanUsername = (username || 'operator').trim().toLowerCase();
-    const createdDocs = [];
+    const requestedUser = (typeof req.body === 'object' && req.body !== null) ? (req.body.username || req.body.user || req.body.slug) : null;
+    const authUser = req.authContext?.username;
+    const cleanUsername = (authUser || requestedUser || 'operator').trim().toLowerCase();
 
-    // Option 1: Structured Sectioned Parsing for Documents
-    if (raw_document) {
-        // Split on section headers (e.g. ## Work Experience, Experience, Education, Projects, Skills)
+    const createdDocs = [];
+    const batchPrefix = Date.now().toString(36) + '-' + crypto.randomBytes(2).toString('hex');
+
+    // 1. Direct document array payload: { docs: [ { title, content, tags, domain } ] }
+    if (typeof req.body === 'object' && req.body !== null && Array.isArray(req.body.docs) && req.body.docs.length > 0) {
+        req.body.docs.forEach((d, idx) => {
+            if (d && (d.content || d.text || d.body)) {
+                const docContent = d.content || d.text || d.body;
+                const docTitle = d.title || d.path || `Memory Node ${idx + 1}`;
+                const docTags = Array.isArray(d.tags) ? d.tags : ['seed', 'imported'];
+                const docDomain = d.domain || 'Field Notes';
+                createdDocs.push({
+                    path: `doc-seed-${batchPrefix}-${idx + 1}`,
+                    title: docTitle,
+                    content: `# ${docTitle}\n\n${docContent.trim()}\n\n---\n*Imported via Brain Seeding Pipeline*`,
+                    tags: docTags,
+                    domain: docDomain
+                });
+            }
+        });
+    }
+
+    // 2. Document payload variants: raw_document, document, content, text, markdown, notes, body
+    const isObj = typeof req.body === 'object' && req.body !== null;
+    const docText = isObj ? (req.body.raw_document || req.body.document || req.body.content || req.body.text || req.body.markdown || req.body.notes) : null;
+    const docTitle = isObj ? (req.body.document_title || req.body.title || 'Imported Document') : 'Imported Document';
+
+    if (docText && typeof docText === 'string' && docText.trim().length > 0) {
+        const trimmed = docText.trim();
+        // Check for multi-section markdown or plaintext (e.g. ## Header or ALL CAPS headers)
         const sectionRegex = /(?:^|\n)(?:#{1,3}\s+|[A-Z\s]{4,}:?\n)/g;
-        const sections = raw_document.split(sectionRegex).filter(s => s.trim().length > 20);
+        const sections = trimmed.split(sectionRegex).filter(s => s.trim().length > 10);
 
         if (sections.length > 1) {
             sections.forEach((sec, idx) => {
                 const firstLine = sec.trim().split('\n')[0].replace(/^#+\s*/, '').slice(0, 40);
-                const docId = `doc-seed-${idx + 1}`;
-                const docTitle = firstLine ? `${firstLine} (${document_title || 'Import'})` : `Section ${idx + 1}`;
+                const docId = `doc-seed-${batchPrefix}-${idx + 1}`;
+                const sectionTitle = firstLine ? `${firstLine} (${docTitle})` : `${docTitle} (Part ${idx + 1})`;
                 createdDocs.push({
                     path: docId,
-                    title: docTitle,
-                    content: `# ${docTitle}\n\n${sec.trim()}\n\n---\n*Imported via Brain Seeding Pipeline*`,
-                    tags: ['seed', 'imported', firstLine.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 15)],
+                    title: sectionTitle,
+                    content: `# ${sectionTitle}\n\n${sec.trim()}\n\n---\n*Imported via Brain Seeding Pipeline*`,
+                    tags: ['seed', 'imported', firstLine.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 15) || 'section'],
                     domain: 'Field Notes'
                 });
             });
         } else {
             createdDocs.push({
-                path: 'doc-seed-1',
-                title: document_title || 'Imported Resume & Background',
-                content: `# ${document_title || 'Imported Background'}\n\n${raw_document.trim()}`,
+                path: `doc-seed-${batchPrefix}`,
+                title: docTitle,
+                content: `# ${docTitle}\n\n${trimmed}\n\n---\n*Imported via Brain Seeding Pipeline*`,
                 tags: ['seed', 'imported', 'background'],
                 domain: 'Field Notes'
             });
         }
     }
 
-    // Option 2: Bio Text Box Seeding
-    if (text_bio && text_bio.trim().length > 0) {
+    // 3. Bio text box payload variants: text_bio, bio, biography, summary, profile
+    const bioText = isObj ? (req.body.text_bio || req.body.bio || req.body.biography || req.body.summary || req.body.profile) : null;
+    if (bioText && typeof bioText === 'string' && bioText.trim().length > 0) {
         createdDocs.push({
-            path: 'doc-seed-bio',
-            title: 'Operator Persona Bio & Philosophy',
-            content: `# Operator Persona Bio & Philosophy\n\n${text_bio.trim()}\n\n---\n*Self-authored seeding context*`,
+            path: `doc-seed-bio-${batchPrefix}`,
+            title: (isObj && req.body.bio_title) || 'Operator Persona Bio & Philosophy',
+            content: `# ${(isObj && req.body.bio_title) || 'Operator Persona Bio & Philosophy'}\n\n${bioText.trim()}\n\n---\n*Self-authored seeding context*`,
             tags: ['seed', 'self-authored', 'bio', 'identity'],
             domain: 'Arboracle'
         });
     }
 
+    // 4. Raw string body fallback
+    if (createdDocs.length === 0 && typeof req.body === 'string' && req.body.trim().length > 0) {
+        createdDocs.push({
+            path: `doc-seed-${batchPrefix}`,
+            title: 'Imported Context Note',
+            content: `# Imported Context Note\n\n${req.body.trim()}\n\n---\n*Imported via Brain Seeding Pipeline*`,
+            tags: ['seed', 'imported', 'raw'],
+            domain: 'Field Notes'
+        });
+    }
+
+    // Store into user profile
     const user = userRegistry.get(cleanUsername);
     if (user) {
         if (!Array.isArray(user.docs)) user.docs = [];
-        user.docs.push(...createdDocs.map(d => ({ path: d.path, tags: d.tags, title: d.title, content: d.content, domain: d.domain })));
+        const existingPaths = new Set(user.docs.map(d => d.path));
+        for (const doc of createdDocs) {
+            if (existingPaths.has(doc.path)) {
+                const existingIdx = user.docs.findIndex(d => d.path === doc.path);
+                user.docs[existingIdx] = doc;
+            } else {
+                user.docs.push(doc);
+                existingPaths.add(doc.path);
+            }
+        }
         saveUserRegistry();
         userVaultCaches.delete(cleanUsername); // Invalidate cache for immediate refresh
     }
@@ -774,6 +825,7 @@ app.post('/api/seed-brain', (req, res) => {
         success: true,
         count: createdDocs.length,
         docs: createdDocs,
+        user: cleanUsername,
         message: `Successfully seeded ${createdDocs.length} granular memory node(s) into your brain.`
     });
 });
@@ -1031,14 +1083,15 @@ async function performFullTextSearch(query, limit = 20, username = 'george') {
     return hits.slice(0, limit);
 }
 
-// Phase 3: Brain Search Proxy Scoped to Authenticated User Namespace (fix-399)
+// Phase 3: Brain Search Proxy Scoped to Authenticated User Namespace (fix-399/fix-400)
 app.post('/api/brain/search', async (req, res) => {
-    const { query, limit = 20 } = req.body;
-    if (!query) return res.status(400).json({ error: 'Search query required.' });
+    const rawQuery = req.body?.query || req.body?.q || req.query?.query || req.query?.q || '';
+    const q = (typeof rawQuery === 'string' ? rawQuery : '').trim().toLowerCase();
+    if (!q) return res.status(400).json({ error: 'Search query required (via "query" or "q" field).' });
 
+    const limit = parseInt(req.body?.limit || req.query?.limit) || 20;
     const userScope = req.authContext?.username || 'george';
-    const q = query.trim().toLowerCase();
-    const results = await performFullTextSearch(q, parseInt(limit) || 20, userScope);
+    const results = await performFullTextSearch(q, limit, userScope);
     res.json({ results, user: userScope });
 });
 
@@ -1192,7 +1245,16 @@ app.get('/api/brain/read/:docId', async (req, res) => {
     // 2. Individual user can ONLY read docs they own
     const userProfile = userRegistry.get(userScope);
     if (userProfile && Array.isArray(userProfile.docs)) {
-        const matchingDoc = userProfile.docs.find(d => d.path === docId);
+        let matchingDoc = userProfile.docs.find(d => d.path === docId);
+        if (!matchingDoc && docId.startsWith('doc-seed-') && userProfile.docs.length > 0) {
+            const seedIndexMatch = docId.match(/doc-seed-(\d+)$/);
+            if (seedIndexMatch) {
+                const idx = parseInt(seedIndexMatch[1]) - 1;
+                if (idx >= 0 && idx < userProfile.docs.length) {
+                    matchingDoc = userProfile.docs[idx];
+                }
+            }
+        }
         if (matchingDoc) {
             return res.json({
                 result: {
