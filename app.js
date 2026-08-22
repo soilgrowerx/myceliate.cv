@@ -283,7 +283,6 @@ function authMiddleware(req, res, next) {
         publicPaths.includes(req.path) ||
         
         req.path.startsWith('/mcp/') ||
-        req.path.startsWith('/api/download-mcpb/') ||
         req.path.startsWith('/api/check-slug') ||
         req.path.startsWith('/uploads/') ||
         req.path.startsWith('/public/') ||
@@ -304,11 +303,22 @@ function authMiddleware(req, res, next) {
     const currentSitePassword = process.env.SITE_PASSWORD || 'mycelium2026';
 
     const authHeader = req.headers['authorization'];
-    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : (authHeader ? authHeader.trim() : null);
+
+    let isUserKeyValid = false;
+    if (bearerToken) {
+        const bHash = crypto.createHash('sha256').update(bearerToken).digest('hex');
+        for (const [_, u] of userRegistry) {
+            if (u && u.apiKeyHash === bHash) {
+                isUserKeyValid = true;
+                break;
+            }
+        }
+    }
 
     if (
         cookies.cv_auth === validToken ||
-        (bearerToken && (bearerToken === currentSitePassword || bearerToken === validToken || activeOperatorKeys.has(bearerToken)))
+        (bearerToken && (bearerToken === currentSitePassword || bearerToken === validToken || activeOperatorKeys.has(bearerToken) || isUserKeyValid))
     ) {
         return next();
     }
@@ -491,8 +501,11 @@ app.post('/api/onboarding/provision', (req, res) => {
 // Dynamic .mcpb Generator (Anthropic Claude Desktop Extensions Spec)
 app.get('/api/download-mcpb/:username', (req, res) => {
     const username = req.params.username.trim().toLowerCase();
+    const user = userRegistry.get(username);
     
-    // Manifest spec matching Claude Desktop Extensions
+    if (!user && username !== 'george') {
+        return res.status(404).json({ error: `Persona node '${username}' not found.` });
+    }
     const manifest = {
         mcpb_version: "0.1",
         name: `myceliate-brain-${username}`,
