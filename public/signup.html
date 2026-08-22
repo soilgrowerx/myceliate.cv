@@ -25,7 +25,7 @@
 
         .checkout-hero {
             text-align: center;
-            margin-bottom: 36px;
+            margin-bottom: 32px;
         }
 
         .checkout-grid {
@@ -77,7 +77,7 @@
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius-md);
             padding: 4px;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .tier-btn {
@@ -107,7 +107,7 @@
             box-shadow: 0 0 12px var(--accent-gold-glow);
         }
 
-        /* Billing Switch Box */
+        /* Billing Switch Box (Matching pricing.html) */
         .billing-cadence-box {
             display: flex;
             align-items: center;
@@ -130,6 +130,26 @@
             color: var(--text-muted);
             font-family: var(--font-mono);
             margin-top: 2px;
+        }
+
+        .checkout-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .billing-label-opt {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+            user-select: none;
+        }
+
+        .billing-label-opt.active {
+            color: var(--accent-gold);
+            font-weight: 600;
         }
 
         /* Price Breakdown Table */
@@ -591,11 +611,12 @@
                         <div class="cadence-title">Billing Cadence</div>
                         <div class="cadence-subtitle" id="billing-sub-label">Billed monthly. Cancel anytime.</div>
                     </div>
-                    <div class="billing-toggle-container" style="margin-bottom:0; gap:10px;">
-                        <span class="billing-label" style="font-size:0.8rem;">Annual</span>
+                    <div class="checkout-toggle-wrapper">
+                        <span class="billing-label-opt active" id="label-monthly-opt" onclick="setBillingPeriod('monthly')">Monthly</span>
                         <div class="toggle-switch" id="billing-switch" onclick="toggleBillingPeriod()">
                             <div class="toggle-slider"></div>
                         </div>
+                        <span class="billing-label-opt" id="label-annual-opt" onclick="setBillingPeriod('annual')">Annual</span>
                     </div>
                 </div>
 
@@ -606,7 +627,7 @@
                         <span id="plan-base-price" style="font-family:var(--font-mono);">$14.00</span>
                     </div>
                     <div class="breakdown-item" id="discount-row" style="display:none; color:var(--hyphae-green-bright);">
-                        <span>Annual Commitment Discount</span>
+                        <span>Annual Commitment Discount (25%)</span>
                         <span id="discount-amount" style="font-family:var(--font-mono);">-$42.00</span>
                     </div>
                     <div class="breakdown-item">
@@ -818,7 +839,7 @@
             const price = isAnnual ? plan.annual : plan.monthly;
             const periodStr = isAnnual ? '/ year' : '/ month';
 
-            document.getElementById('plan-name-label').textContent = plan.name;
+            document.getElementById('plan-name-label').textContent = plan.name + (isAnnual ? ' (Annual)' : '');
             document.getElementById('plan-base-price').textContent = '$' + (isAnnual ? (plan.monthly * 12).toFixed(2) : plan.monthly.toFixed(2));
             document.getElementById('total-price-display').textContent = '$' + price.toFixed(2);
             
@@ -831,9 +852,15 @@
             const discountRow = document.getElementById('discount-row');
             const billingSub = document.getElementById('billing-sub-label');
             const switchEl = document.getElementById('billing-switch');
+            const labelMonthly = document.getElementById('label-monthly-opt');
+            const labelAnnual = document.getElementById('label-annual-opt');
 
             if (switchEl) {
                 switchEl.classList.toggle('annual', isAnnual);
+            }
+            if (labelMonthly && labelAnnual) {
+                labelMonthly.classList.toggle('active', !isAnnual);
+                labelAnnual.classList.toggle('active', isAnnual);
             }
 
             if (isAnnual) {
@@ -850,16 +877,23 @@
 
             // Render features
             const featContainer = document.getElementById('feature-list-container');
-            featContainer.innerHTML = plan.features.map(f => `
-                <li class="feature-item">
-                    <span class="feature-icon">✓</span>
-                    <span>${f}</span>
-                </li>
-            `).join('');
+            if (featContainer) {
+                featContainer.innerHTML = plan.features.map(f => `
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>${f}</span>
+                    </li>
+                `).join('');
+            }
         }
 
         function selectPlan(planKey) {
             currentPlan = planKey;
+            renderPlanUI();
+        }
+
+        function setBillingPeriod(period) {
+            isAnnual = (period === 'annual');
             renderPlanUI();
         }
 
