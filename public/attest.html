@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Professional Claim | Myceliate.cv</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-obsidian: #080E0A;
+            --bg-surface: #0B140D;
+            --bg-surface-elevated: #111E14;
+            --bg-surface-glass: rgba(11, 20, 13, 0.9);
+
+            --accent-gold: #E5A93C;
+            --accent-gold-hover: #F3BA54;
+            --accent-gold-glow: rgba(229, 169, 60, 0.25);
+
+            --hyphae-green: #5A8A62;
+            --hyphae-green-bright: #7DFF7D;
+            --hyphae-green-muted: rgba(90, 138, 98, 0.15);
+
+            --text-primary: #E8EFE9;
+            --text-secondary: #AFC2B2;
+            --text-muted: #78907C;
+            --text-inverse: #080E0A;
+
+            --border-subtle: rgba(90, 138, 98, 0.2);
+            --border-frost: rgba(229, 169, 60, 0.3);
+
+            --font-serif: "Fraunces", Georgia, serif;
+            --font-sans: "Inter", -apple-system, sans-serif;
+            --font-mono: "JetBrains Mono", monospace;
+
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-obsidian);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 15px;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px;
+        }
+
+        .attest-card {
+            max-width: 580px;
+            width: 100%;
+            margin: 40px auto;
+            background: var(--bg-surface-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 36px 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 20px;
+        }
+
+        .attest-title {
+            font-family: var(--font-serif);
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .attest-intro {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+        }
+
+        .role-pill {
+            display: inline-block;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 4px 10px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--accent-gold);
+            margin-top: 6px;
+        }
+
+        /* Claim Box */
+        .claim-box {
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-frost);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .claim-label {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--hyphae-green-bright);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .claim-heading {
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .claim-text {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Action Buttons */
+        .action-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-confirm {
+            background: var(--hyphae-green-bright);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 14px 20px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 16px rgba(125, 255, 125, 0.25);
+        }
+
+        .btn-confirm:hover {
+            background: #95FF95;
+            transform: translateY(-1px);
+        }
+
+        .btn-deny {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-deny:hover {
+            border-color: #FF6B6B;
+            color: #FF6B6B;
+            background: rgba(255, 107, 107, 0.06);
+        }
+
+        /* State Result Banners */
+        .state-banner {
+            display: none;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .state-banner.confirmed {
+            display: block;
+            background: var(--hyphae-green-muted);
+            border: 1px solid var(--hyphae-green-bright);
+            color: var(--hyphae-green-bright);
+        }
+
+        .state-banner.denied {
+            display: block;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #FF6B6B;
+            color: #FFB4B4;
+        }
+
+        .state-banner.expired {
+            display: block;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+        }
+
+        .site-footer {
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+
+        .site-footer a {
+            color: var(--accent-gold);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <main class="attest-card" id="attest-main-card">
+        <div class="brand-badge">
+            <span>🛡️ Myceliate Attestation</span>
+        </div>
+
+        <h1 class="attest-title" id="attest-heading">Professional Verification Request</h1>
+        
+        <p class="attest-intro" id="attest-intro-text">
+            <strong id="user-display-name-text">A candidate</strong> has listed the following claim on their verified professional profile at myceliate.cv and asked for your verification.
+            <br>
+            <span class="role-pill" id="attester-role-pill">Your stated relationship: Former Colleague</span>
+        </p>
+
+        <div class="claim-box">
+            <div class="claim-label">Claim Snapshot</div>
+            <div class="claim-heading" id="claim-title-text">Lead Coordinator for Multi-Agency Systems</div>
+            <div class="claim-text" id="claim-body-text">Loading claim details...</div>
+        </div>
+
+        <div class="action-group" id="action-buttons-group">
+            <button type="button" class="btn-confirm" id="btn-confirm" onclick="submitDecision('confirm')">
+                <span>✓ Confirm this is accurate</span>
+            </button>
+            <button type="button" class="btn-deny" id="btn-deny" onclick="submitDecision('deny')">
+                <span>✕ This is not accurate</span>
+            </button>
+        </div>
+
+        <div class="state-banner" id="state-banner-msg"></div>
+    </main>
+
+    <footer class="site-footer">
+        Powered by <a href="https://myceliate.cv" target="_blank" rel="noopener">Myceliate.cv</a> · Sovereign Professional Identity
+    </footer>
+
+    <script>
+        const token = window.location.pathname.split('/').pop();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!token) {
+                showError("Invalid attestation token.");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/attest/' + token);
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showError(data.error || "Attestation request not found or expired.");
+                    return;
+                }
+
+                document.getElementById('user-display-name-text').textContent = data.user_display_name;
+                document.getElementById('attester-role-pill').textContent = 'Your stated role: ' + (data.attester_role || 'Professional Colleague');
+                document.getElementById('claim-title-text').textContent = data.claim_title || 'Professional Claim';
+                document.getElementById('claim-body-text').textContent = data.claim_text;
+
+                if (data.status === 'confirmed') {
+                    showBanner('confirmed', '✓ Thank you! You have confirmed this claim. Your response is recorded.');
+                } else if (data.status === 'denied') {
+                    showBanner('denied', '✕ You noted this claim is inaccurate. Your response has been recorded.');
+                } else if (data.status === 'expired' || data.expired) {
+                    showBanner('expired', 'This attestation link has expired.');
+                }
+
+            } catch (err) {
+                showError("Could not load attestation claim. Please refresh.");
+            }
+        });
+
+        async function submitDecision(decision) {
+            const confirmBtn = document.getElementById('btn-confirm');
+            const denyBtn = document.getElementById('btn-deny');
+            confirmBtn.disabled = true;
+            denyBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/attest/' + token, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ decision })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showError(data.error || "Failed to record response.");
+                    return;
+                }
+
+                if (data.status === 'confirmed') {
+                    showBanner('confirmed', '✓ Thank you! You have confirmed this claim. Your verification is attached to the candidate profile.');
+                } else {
+                    showBanner('denied', '✕ Your response has been recorded. Thank you for your feedback.');
+                }
+
+            } catch (e) {
+                showError("Network error. Please try again.");
+                confirmBtn.disabled = false;
+                denyBtn.disabled = false;
+            }
+        }
+
+        function showBanner(type, msg) {
+            document.getElementById('action-buttons-group').style.display = 'none';
+            const banner = document.getElementById('state-banner-msg');
+            banner.className = 'state-banner ' + type;
+            banner.textContent = msg;
+        }
+
+        function showError(msg) {
+            document.getElementById('action-buttons-group').style.display = 'none';
+            const banner = document.getElementById('state-banner-msg');
+            banner.className = 'state-banner expired';
+            banner.textContent = msg;
+        }
+    </script>
+</body>
+</html>

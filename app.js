@@ -346,6 +346,8 @@ function authMiddleware(req, res, next) {
     if (
         publicPaths.includes(req.path) ||
         req.path.startsWith('/mcp/') ||
+        req.path.startsWith('/attest/') ||
+        req.path.startsWith('/api/attest/') ||
         req.path.startsWith('/api/check-slug') ||
         req.path.startsWith('/uploads/') ||
         req.path.startsWith('/public/') ||
@@ -1704,10 +1706,8 @@ app.post('/api/confirm-payment-provision', async (req, res) => {
             if (displayName) user.displayName = displayName;
             if (email) user.email = email;
             if (paymentIntentId) user.paymentIntentId = paymentIntentId;
-            if (!user.apiKeyHash) {
-                rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
-                user.apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
-            }
+            rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
+            user.apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
         } else {
             rawApiKey = `mb_live_${crypto.randomBytes(16).toString('hex')}`;
             const apiKeyHash = crypto.createHash('sha256').update(rawApiKey).digest('hex');
@@ -3071,6 +3071,239 @@ Answer strictly following instructions:`;
         grounded: true,
         user: userScope
     });
+});
+
+
+// === PER-USER ATTESTATION SYSTEM (Bodhi Directive) ===
+const ATTESTATION_DATA_DIR = path.join(__dirname, 'data', 'attestations');
+if (!fs.existsSync(ATTESTATION_DATA_DIR)) fs.mkdirSync(ATTESTATION_DATA_DIR, { recursive: true });
+
+const ATTESTATIONS_FILE = path.join(ATTESTATION_DATA_DIR, 'records.json');
+const ATTESTATION_TOKENS_FILE = path.join(ATTESTATION_DATA_DIR, 'tokens.json');
+
+function loadAttestationStore() {
+    let records = {};
+    let tokens = {};
+    try {
+        if (fs.existsSync(ATTESTATIONS_FILE)) {
+            records = JSON.parse(fs.readFileSync(ATTESTATIONS_FILE, 'utf8'));
+        }
+        if (fs.existsSync(ATTESTATION_TOKENS_FILE)) {
+            tokens = JSON.parse(fs.readFileSync(ATTESTATION_TOKENS_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error("Attestation store load error:", e.message);
+    }
+    return { records, tokens };
+}
+
+function saveAttestationStore(records, tokens) {
+    try {
+        if (!fs.existsSync(ATTESTATION_DATA_DIR)) fs.mkdirSync(ATTESTATION_DATA_DIR, { recursive: true });
+        fs.writeFileSync(ATTESTATIONS_FILE, JSON.stringify(records, null, 2), 'utf8');
+        fs.writeFileSync(ATTESTATION_TOKENS_FILE, JSON.stringify(tokens, null, 2), 'utf8');
+    } catch (e) {
+        console.error("Attestation store save error:", e.message);
+    }
+}
+
+// Public Route: Serve Attester-Facing Page (No Auth)
+app.get('/attest/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'attest.html'));
+});
+
+// 1. POST /api/profile/entry/:id/request-attestation (Auth required)
+app.post('/api/profile/entry/:id/request-attestation', (req, res) => {
+    const userScope = req.authContext?.username || 'george';
+    const entryId = req.params.id;
+    const { attester_name, attester_email, attester_role } = req.body;
+
+    if (!attester_name || !attester_email || !attester_role) {
+        return res.status(400).json({ error: 'Attester name, email, and role relationship are required.' });
+    }
+
+    const entries = loadProfessionalProfile(userScope);
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry) {
+        return res.status(404).json({ error: 'Profile entry not found in your professional namespace.' });
+    }
+
+    const userObj = userRegistry.get(userScope) || { displayName: userScope };
+    const userDisplayName = userObj.displayName || userScope;
+
+    const { records, tokens } = loadAttestationStore();
+
+    const attestationId = 'attest-' + Date.now() + '-' + crypto.randomBytes(4).toString('hex');
+    const token = crypto.randomUUID();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const attestationRecord = {
+        id: attestationId,
+        user_id: userScope,
+        user_display_name: userDisplayName,
+        profile_entry_id: entryId,
+        claim_title: entry.title,
+        claim_text: entry.body,
+        attester_name: attester_name.trim(),
+        attester_email: attester_email.trim().toLowerCase(),
+        attester_role: attester_role.trim(),
+        status: 'pending',
+        token,
+        created_date: now.toISOString(),
+        resolved_date: null,
+        expires_at: expiresAt
+    };
+
+    records[attestationId] = attestationRecord;
+    tokens[token] = attestationId;
+    saveAttestationStore(records, tokens);
+
+    // Update entry status
+    entry.attestation_status = 'pending';
+    entry.attestation_id = attestationId;
+    entry.attestation_meta = {
+        attester: attester_name.trim(),
+        role: attester_role.trim(),
+        requested_date: now.toISOString().split('T')[0]
+    };
+    saveProfessionalProfile(userScope, entries);
+
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.get('host') || 'myceliate.cv';
+    const attestationUrl = `${protocol}://${host}/attest/${token}`;
+
+    res.json({
+        success: true,
+        attestation_id: attestationId,
+        status: 'pending',
+        token,
+        link: attestationUrl,
+        expires_at: expiresAt,
+        message: `Attestation requested for '${entry.title}'. Link generated.`
+    });
+});
+
+// 2. GET /api/attest/:token (NO AUTH REQUIRED - Strictly Scoped Claim View)
+app.get('/api/attest/:token', (req, res) => {
+    const token = req.params.token;
+    const { records, tokens } = loadAttestationStore();
+
+    const attestationId = tokens[token];
+    if (!attestationId || !records[attestationId]) {
+        return res.status(404).json({ error: 'Attestation claim not found or link has expired.' });
+    }
+
+    const record = records[attestationId];
+    const isExpired = new Date() > new Date(record.expires_at);
+    if (isExpired && record.status === 'pending') {
+        record.status = 'expired';
+        saveAttestationStore(records, tokens);
+    }
+
+    // Return ONLY the claim snapshot and safe metadata (Zero Leakage)
+    res.json({
+        claim_title: record.claim_title,
+        claim_text: record.claim_text,
+        user_display_name: record.user_display_name,
+        attester_name: record.attester_name,
+        attester_role: record.attester_role,
+        status: record.status,
+        resolved_date: record.resolved_date,
+        expires_at: record.expires_at,
+        expired: isExpired
+    });
+});
+
+// 3. POST /api/attest/:token (NO AUTH REQUIRED - Single-Use Confirmation/Denial)
+app.post('/api/attest/:token', (req, res) => {
+    const token = req.params.token;
+    const decision = (req.body?.decision || '').trim().toLowerCase();
+
+    if (!['confirm', 'deny'].includes(decision)) {
+        return res.status(400).json({ error: 'Decision must be either "confirm" or "deny".' });
+    }
+
+    const { records, tokens } = loadAttestationStore();
+    const attestationId = tokens[token];
+    if (!attestationId || !records[attestationId]) {
+        return res.status(404).json({ error: 'Attestation record not found.' });
+    }
+
+    const record = records[attestationId];
+
+    if (record.status !== 'pending') {
+        return res.status(400).json({
+            error: `This attestation has already been ${record.status}.`,
+            status: record.status
+        });
+    }
+
+    if (new Date() > new Date(record.expires_at)) {
+        record.status = 'expired';
+        saveAttestationStore(records, tokens);
+        return res.status(400).json({ error: 'This attestation link has expired.', status: 'expired' });
+    }
+
+    const now = new Date().toISOString();
+    const newStatus = decision === 'confirm' ? 'confirmed' : 'denied';
+    record.status = newStatus;
+    record.resolved_date = now;
+
+    // Update the user's professional profile entry directly
+    const userEntries = loadProfessionalProfile(record.user_id);
+    const entry = userEntries.find(e => e.id === record.profile_entry_id);
+    if (entry) {
+        entry.attestation_status = newStatus;
+        entry.attestation_meta = {
+            attester: record.attester_name,
+            role: record.attester_role,
+            date: now.split('T')[0]
+        };
+        saveProfessionalProfile(record.user_id, userEntries);
+    }
+
+    saveAttestationStore(records, tokens);
+
+    res.json({
+        success: true,
+        status: newStatus,
+        message: newStatus === 'confirmed' ? 'Claim confirmed successfully.' : 'Response recorded.'
+    });
+});
+
+// 4. GET /api/profile/attestations (Auth required)
+app.get('/api/profile/attestations', (req, res) => {
+    const userScope = req.authContext?.username || 'george';
+    const { records } = loadAttestationStore();
+    const userAttestations = Object.values(records).filter(r => r.user_id === userScope);
+    res.json({ attestations: userAttestations });
+});
+
+// 5. DELETE /api/profile/attestation/:id (Auth required - Revoke/Expire)
+app.delete('/api/profile/attestation/:id', (req, res) => {
+    const userScope = req.authContext?.username || 'george';
+    const attestationId = req.params.id;
+    const { records, tokens } = loadAttestationStore();
+
+    const record = records[attestationId];
+    if (!record || record.user_id !== userScope) {
+        return res.status(404).json({ error: 'Attestation record not found.' });
+    }
+
+    record.status = 'expired';
+    record.resolved_date = new Date().toISOString();
+    saveAttestationStore(records, tokens);
+
+    // Update profile entry
+    const userEntries = loadProfessionalProfile(userScope);
+    const entry = userEntries.find(e => e.id === record.profile_entry_id);
+    if (entry) {
+        entry.attestation_status = 'expired';
+        saveProfessionalProfile(userScope, userEntries);
+    }
+
+    res.json({ success: true, message: 'Attestation request revoked.' });
 });
 
 // Fallback handler: serve index.html for any unhandled GET route

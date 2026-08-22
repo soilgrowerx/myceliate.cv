@@ -8,7 +8,72 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+        // Attestation Modal Handlers
+        function openAttestModal(entryId) {
+            document.getElementById('attest-target-entry-id').value = entryId;
+            document.getElementById('attest-name-input').value = '';
+            document.getElementById('attest-email-input').value = '';
+            document.getElementById('attest-role-input').value = '';
+            document.getElementById('attest-generated-box').style.display = 'none';
+            document.getElementById('attest-modal-actions').style.display = 'flex';
+            document.getElementById('btn-submit-attest').disabled = false;
+            document.getElementById('attest-request-modal').style.display = 'flex';
+        }
+
+        function closeAttestModal() {
+            document.getElementById('attest-request-modal').style.display = 'none';
+        }
+
+        async function submitAttestRequest() {
+            const entryId = document.getElementById('attest-target-entry-id').value;
+            const attester_name = document.getElementById('attest-name-input').value.trim();
+            const attester_email = document.getElementById('attest-email-input').value.trim();
+            const attester_role = document.getElementById('attest-role-input').value.trim();
+
+            if (!attester_name || !attester_email || !attester_role) {
+                alert("Please fill in the attester name, email, and role.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-attest');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/profile/entry/' + entryId + '/request-attestation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ attester_name, attester_email, attester_role })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert(data.error || "Failed to request attestation.");
+                    btn.disabled = false;
+                    return;
+                }
+
+                document.getElementById('attest-link-copy-input').value = data.link;
+                document.getElementById('attest-generated-box').style.display = 'block';
+                document.getElementById('attest-modal-actions').style.display = 'none';
+                loadProfileEntries();
+
+            } catch (err) {
+                alert("Request error. Please try again.");
+                btn.disabled = false;
+            }
+        }
+
+        function copyAttestLink() {
+            const input = document.getElementById('attest-link-copy-input');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            alert("Attestation link copied! Send this to your attester.");
+            closeAttestModal();
+        }
+
+</script>
     <style>
         :root {
             --bg-obsidian: #080E0A;
@@ -1281,23 +1346,42 @@
                 return;
             }
 
-            container.innerHTML = filtered.map(e => `
+            container.innerHTML = filtered.map(e => {
+                let attestBadge = '';
+                let attestAction = '';
+                if (e.attestation_status === 'confirmed' || e.attestation_status === 'attested') {
+                    const meta = e.attestation_meta || {};
+                    attestBadge = `<span style="color:var(--hyphae-green-bright); font-family:var(--font-mono); font-size:0.75rem;">✓ Attested by ${meta.attester || 'Verified Peer'}${meta.role ? ' (' + meta.role + ')' : ''}</span>`;
+                } else if (e.attestation_status === 'pending') {
+                    const meta = e.attestation_meta || {};
+                    attestBadge = `<span style="color:var(--accent-gold); font-family:var(--font-mono); font-size:0.75rem;">⏱️ Attestation requested (${meta.attester || 'Pending'})</span>`;
+                } else if (e.attestation_status === 'denied') {
+                    attestBadge = `<span style="color:#FF6B6B; font-family:var(--font-mono); font-size:0.75rem;">⚠️ Attestation disputed</span>`;
+                } else if (e.attestation_status === 'expired') {
+                    attestBadge = `<span style="color:var(--text-muted); font-family:var(--font-mono); font-size:0.75rem;">Attestation expired</span>`;
+                } else {
+                    attestAction = `<button class="btn-entry-action" style="color:var(--accent-gold); border-color:var(--accent-gold);" onclick="openAttestModal('${e.id}')">Request Attestation</button>`;
+                }
+
+                return `
                 <div class="entry-card">
                     <div class="entry-card-header">
                         <span class="entry-type-pill ${e.type.toLowerCase().replace(/[^a-z]/g, '')}">${e.type}</span>
-                        ${e.attestation_status === 'attested' ? '<span style="color:var(--hyphae-green-bright); font-family:var(--font-mono); font-size:0.75rem;">✓ Attested</span>' : ''}
+                        ${attestBadge}
                     </div>
                     <div class="entry-card-title">${e.title}</div>
                     <div class="entry-card-body">${e.body}</div>
                     <div class="entry-card-footer">
                         <span>Tags: ${(e.tags || []).join(', ')}</span>
                         <div class="entry-actions">
+                            ${attestAction}
                             <button class="btn-entry-action" onclick="editEntry('${e.id}')">Edit</button>
                             <button class="btn-entry-action" style="color:#FF6B6B;" onclick="deleteEntry('${e.id}')">Delete</button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Suggestions logic
@@ -1490,5 +1574,43 @@
             }
         }
     </script>
+
+    <!-- Request Attestation Modal -->
+    <div class="modal-overlay" id="attest-request-modal">
+        <div class="modal-content">
+            <div style="font-family:var(--font-serif); font-size:1.3rem; font-weight:700; color:var(--text-primary);">Request Claim Attestation</div>
+            <p style="color:var(--text-secondary); font-size:0.88rem;">
+                Send a 1-click verification link to a supervisor, colleague, or client to verify this claim.
+            </p>
+            <input type="hidden" id="attest-target-entry-id">
+
+            <div class="form-group">
+                <label class="form-label">Attester Full Name</label>
+                <input type="text" id="attest-name-input" class="modal-input" placeholder="e.g. Jane Doe" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Attester Email Address</label>
+                <input type="email" id="attest-email-input" class="modal-input" placeholder="supervisor@company.com" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Their Relationship / Role to You</label>
+                <input type="text" id="attest-role-input" class="modal-input" placeholder="e.g. Former Supervisor at DEQ / VP Engineering" required>
+            </div>
+
+            <div id="attest-generated-box" style="display:none; background:var(--bg-surface-elevated); border:1px solid var(--hyphae-green-bright); border-radius:var(--radius-sm); padding:14px; margin-top:10px;">
+                <div style="color:var(--hyphae-green-bright); font-size:0.85rem; font-weight:600; margin-bottom:6px;">✓ Attestation Link Ready</div>
+                <input type="text" id="attest-link-copy-input" class="modal-input" style="font-family:var(--font-mono); font-size:0.8rem; margin-bottom:8px;" readonly>
+                <button type="button" class="btn-modal-save" style="width:100%;" onclick="copyAttestLink()">Copy Link to Clipboard</button>
+            </div>
+
+            <div class="modal-actions" id="attest-modal-actions">
+                <button type="button" class="btn-modal-cancel" onclick="closeAttestModal()">Cancel</button>
+                <button type="button" class="btn-modal-save" id="btn-submit-attest" onclick="submitAttestRequest()">Generate Attestation Link</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
