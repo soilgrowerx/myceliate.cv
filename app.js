@@ -349,6 +349,7 @@ function authMiddleware(req, res, next) {
         req.path.startsWith('/attest/') ||
         req.path.startsWith('/api/attest/') ||
         req.path.startsWith('/api/check-slug') ||
+        req.path.startsWith('/assets/') ||
         req.path.startsWith('/uploads/') ||
         req.path.startsWith('/public/') ||
         req.path.endsWith('.css') ||
