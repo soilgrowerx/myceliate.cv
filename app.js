@@ -378,6 +378,10 @@ function authMiddleware(req, res, next) {
 
 app.use(authMiddleware);
 
+app.get('/assets/og-preview.png', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'assets', 'og-preview.png'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/login', (req, res) => {

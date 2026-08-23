@@ -3,6 +3,7 @@
 .gitignore
 node_modules/
 *.png
+!public/assets/*.png
 scratch/
 puppeteer_test.js
 old_script_diff.txt
