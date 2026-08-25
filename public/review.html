@@ -58,16 +58,26 @@
     </header>
 
     <main class="profile-page-wrapper">
-        <div class="split-layout review-split">
+        <!-- Mobile Segmented Control for Small Screens -->
+        <div class="mobile-segmented-control" id="review-mobile-nav">
+            <button type="button" class="mobile-seg-btn active" id="btn-review-form" onclick="setMobileReviewTab('form')">
+                <span>✍ Peer Attestation Form</span>
+            </button>
+            <button type="button" class="mobile-seg-btn" id="btn-review-chat" onclick="setMobileReviewTab('chat')">
+                <span>💬 Context Chat</span>
+            </button>
+        </div>
+
+        <div class="split-layout review-split" id="review-split-container">
             
             <!-- LEFT COLUMN: Neural Chat Assistant (Wider Side) -->
-            <div class="chat-column">
+            <div class="chat-column" id="review-chat-pane">
                 <div class="chat-header">
                     <div class="chat-title-group">
                         <h1>Neural Assistant <span>· Memory Sync</span></h1>
                         <p>Query verified context to assist your attestation</p>
                     </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="chat-header-actions">
                         <button type="button" class="btn-clear-chat" onclick="clearChat()" title="Clear conversation history">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -109,7 +119,7 @@
             </div>
 
             <!-- RIGHT COLUMN: The Review Flow (420px) -->
-            <div class="form-column">
+            <div class="form-column" id="review-form-pane">
                 <div class="review-scroll-area">
                     <div class="review-container">
                         
@@ -271,6 +281,54 @@
                 btn.textContent = 'Commit Attestation to Brain';
             }
         }
+    </script>
+    <script>
+        function setMobileReviewTab(tab) {
+            const formPane = document.getElementById('review-form-pane');
+            const chatPane = document.getElementById('review-chat-pane');
+            const btnForm = document.getElementById('btn-review-form');
+            const btnChat = document.getElementById('btn-review-chat');
+
+            if (window.innerWidth <= 768) {
+                if (tab === 'chat') {
+                    if (formPane) formPane.style.display = 'none';
+                    if (chatPane) chatPane.style.display = 'flex';
+                    if (btnChat) btnChat.classList.add('active');
+                    if (btnForm) btnForm.classList.remove('active');
+                } else {
+                    if (formPane) formPane.style.display = 'flex';
+                    if (chatPane) chatPane.style.display = 'none';
+                    if (btnForm) btnForm.classList.add('active');
+                    if (btnChat) btnChat.classList.remove('active');
+                }
+            } else {
+                if (formPane) formPane.style.display = 'flex';
+                if (chatPane) chatPane.style.display = 'flex';
+            }
+        }
+        window.setMobileReviewTab = setMobileReviewTab;
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                const formPane = document.getElementById('review-form-pane');
+                const chatPane = document.getElementById('review-chat-pane');
+                if (formPane) formPane.style.display = 'flex';
+                if (chatPane) chatPane.style.display = 'flex';
+            } else {
+                const activeBtn = document.querySelector('#review-mobile-nav .mobile-seg-btn.active');
+                if (activeBtn && activeBtn.id === 'btn-review-chat') {
+                    setMobileReviewTab('chat');
+                } else {
+                    setMobileReviewTab('form');
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.innerWidth <= 768) {
+                setMobileReviewTab('form');
+            }
+        });
     </script>
 </body>
 </html>

@@ -155,6 +155,9 @@ function renderOutcomeCards(outcomes) {
             "</div>";
         
         card.addEventListener("click", () => {
+            if (window.innerWidth <= 768 && typeof setMobileProfileTab === 'function') {
+                setMobileProfileTab('chat');
+            }
             let query = "Tell me more about " + (out.title || "this project") + " and verified outcomes.";
             if (out.category === "soil-grower") {
                 query = "What is the Bluffview contract and the Soil Grower business?";

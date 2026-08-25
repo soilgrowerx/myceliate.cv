@@ -936,17 +936,44 @@ body {
     box-shadow: 0 0 10px var(--accent-gold-muted);
 }
 
+.btn-clear-chat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: rgba(17, 30, 20, 0.85);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-clear-chat:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    background: var(--accent-gold-muted);
+}
+
 .input-container button, #ask-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 20px;
+    padding: 0;
     background: var(--accent-gold);
     color: var(--text-inverse);
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all 0.2s ease;
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
 }
 
 .input-container button:hover, #ask-btn:hover {
@@ -955,8 +982,9 @@ body {
 }
 
 .send-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
+    stroke: #080E0A;
 }
 
 /* ========================================================================= */
@@ -1410,103 +1438,406 @@ body {
 }
 
 /* ========================================================================= */
-/* Responsive Breakpoints */
+/* Responsive Breakpoints & Mobile Seamlessness Scrub */
 /* ========================================================================= */
+
+/* Mobile Segmented Control (Active on <= 768px) */
+.mobile-segmented-control {
+    display: none;
+    background: rgba(11, 20, 13, 0.9);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    margin-bottom: 16px;
+    gap: 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.mobile-seg-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-seg-btn:hover {
+    color: var(--text-primary);
+    background: rgba(17, 30, 20, 0.5);
+}
+
+.mobile-seg-btn.active {
+    background: var(--bg-surface-elevated);
+    color: var(--accent-gold);
+    border-color: var(--border-frost);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 @media (max-width: 1024px) {
+    .profile-page-wrapper {
+        padding: 0 16px;
+        margin: 20px auto 40px;
+    }
+    
     .split-layout {
-        grid-template-columns: 1fr;
-        min-height: auto;
+        grid-template-columns: 300px 1fr;
+        min-height: 640px;
     }
-    .form-column {
-        border-right: none;
-        border-bottom: 1px solid var(--border-subtle);
-        max-height: 380px;
+    
+    .split-layout.review-split {
+        grid-template-columns: 1fr 340px;
     }
+
     .blueprint-grid {
         grid-template-columns: 1fr;
-        gap: 24px;
+        gap: 20px;
     }
+
     .blueprint-connector {
         transform: rotate(90deg);
-        margin: 10px 0;
+        margin: 8px 0;
     }
+
     .open-source-banner {
         flex-direction: column;
         align-items: flex-start;
+        gap: 18px;
     }
 }
 
 @media (max-width: 768px) {
-    .header-container {
-        padding: 0 16px;
+    /* Sticky Mobile Header with Blur */
+    .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(8, 14, 10, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border-subtle);
     }
+
+    .header-container {
+        padding: 0 14px;
+        height: 58px;
+        gap: 8px;
+    }
+
+    .brand-logo {
+        font-size: 1.15rem;
+        white-space: nowrap;
+    }
+
+    .status-pill {
+        padding: 3px 8px;
+        font-size: 0.68rem;
+    }
+
     .nav-menu {
         display: none;
     }
+
+    .btn-operator {
+        padding: 6px 12px;
+        font-size: 0.72rem;
+        gap: 5px;
+        white-space: nowrap;
+    }
+
+    /* Landing Page Hero & Sections */
     .hero-section {
-        padding: 60px 16px 40px;
+        padding: 44px 16px 36px;
         min-height: auto;
     }
-    .telemetry-strip {
-        grid-template-columns: 1fr 1fr;
-        padding: 0 16px;
+
+    .hero-badge {
+        font-size: 0.72rem;
+        padding: 4px 10px;
+        margin-bottom: 14px;
+    }
+
+    .hero-title {
+        font-size: clamp(2rem, 7.5vw, 3.2rem);
+        line-height: 1.15;
+        margin-bottom: 14px;
+    }
+
+    .hero-subtitle {
+        font-size: clamp(0.92rem, 3.8vw, 1.05rem);
+        line-height: 1.55;
+        margin-bottom: 24px;
+        padding: 0 4px;
+    }
+
+    .hero-ctas {
+        flex-direction: column;
+        width: 100%;
         gap: 12px;
     }
-    .content-section, .profile-page-wrapper, .pricing-page-wrapper {
-        padding: 40px 16px;
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        min-height: 48px;
+        justify-content: center;
+        font-size: 0.92rem;
     }
+
+    .telemetry-strip {
+        grid-template-columns: 1fr 1fr;
+        padding: 12px 14px;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .content-section, .pricing-page-wrapper {
+        padding: 36px 14px;
+    }
+
+    .section-header {
+        margin-bottom: 28px;
+    }
+
+    .section-title {
+        font-size: clamp(1.5rem, 5.5vw, 2.2rem);
+    }
+
+    .pillars-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px;
+    }
+
+    .pillar-card {
+        padding: 20px 18px;
+    }
+
     .blueprint-container {
-        padding: 24px 18px;
+        padding: 20px 16px;
     }
-    .pillars-grid, .pricing-grid {
+
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        max-width: 440px;
+        margin: 0 auto;
+    }
+
+    .open-source-banner {
+        padding: 24px 18px;
+        text-align: left;
+    }
+
+    .open-source-banner .btn-primary {
+        width: 100%;
+    }
+
+    /* Dual-Column Profile & Review Pages Mobile Stacking */
+    .profile-page-wrapper {
+        padding: 0 12px;
+        margin: 14px auto 40px;
+    }
+
+    .mobile-segmented-control {
+        display: flex;
+    }
+
+    .split-layout {
+        display: flex;
+        flex-direction: column;
+        min-height: auto;
+        border-radius: var(--radius-md);
+        overflow: visible;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .split-layout.review-split {
         grid-template-columns: 1fr;
     }
-    .slide-modal {
-        max-width: 100%;
+
+    .form-column, .outcomes-column {
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+        max-height: none;
+        width: 100%;
+        background: rgba(8, 14, 10, 0.85);
     }
+
+    .review-scroll-area {
+        padding: 18px 14px;
+        max-height: 480px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .outcome-card {
+        padding: 14px;
+    }
+
+    .outcome-card:hover {
+        transform: none;
+    }
+
+    .chat-column {
+        width: 100%;
+        min-height: 520px;
+        height: auto;
+        max-height: none;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-header {
+        padding: 16px 14px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .chat-title-group h1 {
+        font-size: 1.2rem;
+    }
+
+    .chat-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .review-link {
+        padding: 6px 12px;
+        font-size: 0.74rem;
+    }
+
+    .btn-clear-chat {
+        padding: 6px 12px;
+        font-size: 0.74rem;
+    }
+
+    .messages-area {
+        padding: 16px 14px;
+        gap: 14px;
+        max-height: 380px;
+        min-height: 220px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .message {
+        max-width: 94%;
+    }
+
+    .message-content {
+        padding: 12px 14px;
+        font-size: 0.88rem;
+    }
+
+    .suggestion-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+    }
+
+    .chip {
+        padding: 8px 12px;
+        font-size: 0.76rem;
+        min-height: 36px;
+        border-radius: var(--radius-sm);
+    }
+
+    .input-container {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    #questionInput {
+        font-size: 0.88rem;
+        padding: 10px 12px;
+        min-height: 44px;
+    }
+
+    #ask-btn {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .footer-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 16px;
+        padding: 24px 14px;
+    }
+
+    .footer-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
     #substrate-canvas {
         display: none;
     }
+
     .substrate-mobile-fallback {
         display: block;
     }
 }
 
 @media (max-width: 480px) {
+    .header-container {
+        padding: 0 12px;
+    }
+
+    .status-pill {
+        padding: 3px 6px;
+    }
+
+    .status-pill span:not(.status-dot) {
+        display: none; /* Just show the pulsing dot */
+    }
+
     .telemetry-strip {
         grid-template-columns: 1fr;
+        gap: 8px;
     }
-    .hero-ctas {
-        flex-direction: column;
+
+    .telemetry-item {
+        padding: 10px 12px;
+    }
+
+    .chat-header-actions {
+        flex-direction: row;
         width: 100%;
     }
-    .btn-primary, .btn-secondary {
-        width: 100%;
-    }
-    .footer-container {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-}
 
-.btn-clear-chat {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-full);
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-clear-chat:hover {
-    border-color: var(--accent-gold);
-    color: var(--accent-gold);
-    background: var(--accent-gold-muted);
+    .chat-header-actions a, .chat-header-actions button {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
+    }
 }

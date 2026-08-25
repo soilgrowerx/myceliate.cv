@@ -959,6 +959,111 @@
             font-family: var(--font-mono);
             font-size: 0.78rem;
         }
+    
+        @media (max-width: 768px) {
+            html, body {
+                overflow-x: hidden;
+            }
+            .operator-topbar {
+                height: auto;
+                min-height: 58px;
+                padding: 10px 14px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .topbar-left {
+                justify-content: space-between;
+                width: 100%;
+            }
+            .workspace-tab-group {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                display: flex;
+                scrollbar-width: none;
+                padding: 4px;
+            }
+            .ws-tab-btn {
+                flex: 1;
+                min-height: 40px;
+                justify-content: center;
+                padding: 6px 10px;
+                font-size: 0.76rem;
+                white-space: nowrap;
+            }
+            .topbar-right {
+                display: none; /* Accessible in tab flows */
+            }
+            .view-pane {
+                height: calc(100dvh - 120px);
+                overflow-y: auto;
+            }
+            .completeness-banner {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding: 14px 16px;
+            }
+            .meter-left {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .progress-bar-container {
+                max-width: 100%;
+            }
+            .entries-action-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .btn-add-entry {
+                width: 100%;
+                justify-content: center;
+                min-height: 44px;
+            }
+            .profile-entries-center {
+                padding: 16px 14px;
+                border-right: none;
+            }
+            .entry-card {
+                padding: 16px 14px;
+            }
+            .entry-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+            .entry-actions {
+                flex-wrap: wrap;
+                width: 100%;
+                gap: 6px;
+                margin-top: 10px;
+            }
+            .btn-entry-action {
+                flex: 1;
+                min-height: 36px;
+                justify-content: center;
+                text-align: center;
+            }
+            .modal-content {
+                width: 94vw;
+                max-width: 520px;
+                max-height: 88vh;
+                overflow-y: auto;
+                padding: 20px 16px;
+            }
+            .modal-actions {
+                flex-direction: column-reverse;
+                gap: 10px;
+            }
+            .modal-actions button {
+                width: 100%;
+                min-height: 44px;
+            }
+        }
+
     </style>
 </head>
 <body>

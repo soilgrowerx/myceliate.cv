@@ -558,6 +558,46 @@
             max-width: 460px;
             line-height: 1.5;
         }
+
+        @media (max-width: 600px) {
+            .checkout-page-wrapper {
+                padding: 16px 12px 48px;
+            }
+            .summary-card, .checkout-card {
+                padding: 20px 16px;
+                border-radius: var(--radius-md);
+            }
+            .tier-selector {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .tier-btn {
+                padding: 10px 12px;
+                min-height: 44px;
+            }
+            .billing-cadence-box {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .checkout-toggle-wrapper {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .slug-prefix {
+                font-size: 0.76rem;
+                padding: 10px 12px;
+            }
+            .btn-checkout-submit {
+                font-size: 0.95rem;
+                padding: 14px 16px;
+                min-height: 48px;
+            }
+            .checkout-assurance-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
     </style>
 </head>
 <body>

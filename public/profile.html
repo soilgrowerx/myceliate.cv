@@ -7,6 +7,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        <link rel="canonical" href="https://myceliate.cv/george">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="George Steward | Decentralized Persona & Signal Fidelity">
+    <meta property="og:description" content="Interact directly with the decentralized persona of George Steward. Verifiable outcome nodes and grounded neural memory.">
+    <meta property="og:url" content="https://myceliate.cv/george">
+    <meta property="og:image" content="https://myceliate.cv/assets/og-preview.png">
+    <meta property="og:site_name" content="Myceliate.cv">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="George Steward | Decentralized Persona & Signal Fidelity">
+    <meta name="twitter:description" content="Interact directly with the decentralized persona of George Steward. Verifiable outcome nodes and grounded neural memory.">
+    <meta name="twitter:image" content="https://myceliate.cv/assets/og-preview.png">
     <link rel="stylesheet" href="/style.css">
     <link rel="manifest" href="/manifest.json">
 </head>
@@ -44,10 +59,20 @@
 
     <!-- Main Dual Column Container -->
     <main class="profile-page-wrapper">
-        <div class="split-layout">
+        <!-- Mobile Segmented Control for Small Screens -->
+        <div class="mobile-segmented-control" id="profile-mobile-nav">
+            <button type="button" class="mobile-seg-btn active" id="btn-show-chat" onclick="setMobileProfileTab('chat')">
+                <span>💬 AI Synthesis Chat</span>
+            </button>
+            <button type="button" class="mobile-seg-btn" id="btn-show-outcomes" onclick="setMobileProfileTab('outcomes')">
+                <span>🛡️ Signal Fidelity (<span id="mobile-outcomes-count">5</span>)</span>
+            </button>
+        </div>
+
+        <div class="split-layout" id="profile-split-container">
             
             <!-- LEFT COLUMN: Signal Fidelity Ledger (Narrower Side) -->
-            <div class="form-column outcomes-column">
+            <div class="form-column outcomes-column" id="profile-outcomes-pane">
                 <div class="review-scroll-area">
                     <div class="review-header">
                         <h2>Signal Fidelity</h2>
@@ -61,13 +86,13 @@
             </div>
 
             <!-- RIGHT COLUMN: Interactive Brain Synthesis Chat (Wider Side) -->
-            <div class="chat-column">
+            <div class="chat-column" id="profile-chat-pane">
                 <div class="chat-header">
                     <div class="chat-title-group">
                         <h1>George Steward <span>· AI Synthesis</span></h1>
                         <p>Interact directly with the decentralized persona</p>
                     </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="chat-header-actions">
                         <button type="button" class="btn-clear-chat" onclick="clearChat()" title="Clear conversation history">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -138,6 +163,9 @@
     <script src="/script.js"></script>
     <script>
         function setQuery(text) {
+            if (window.innerWidth <= 768) {
+                setMobileProfileTab('chat');
+            }
             const input = document.getElementById("questionInput");
             if (input) {
                 input.value = text;
@@ -145,6 +173,53 @@
                 if (askBtn) askBtn.click();
             }
         }
+
+        function setMobileProfileTab(tab) {
+            const outcomesPane = document.getElementById('profile-outcomes-pane');
+            const chatPane = document.getElementById('profile-chat-pane');
+            const btnOutcomes = document.getElementById('btn-show-outcomes');
+            const btnChat = document.getElementById('btn-show-chat');
+
+            if (window.innerWidth <= 768) {
+                if (tab === 'outcomes') {
+                    if (outcomesPane) outcomesPane.style.display = 'flex';
+                    if (chatPane) chatPane.style.display = 'none';
+                    if (btnOutcomes) btnOutcomes.classList.add('active');
+                    if (btnChat) btnChat.classList.remove('active');
+                } else {
+                    if (outcomesPane) outcomesPane.style.display = 'none';
+                    if (chatPane) chatPane.style.display = 'flex';
+                    if (btnChat) btnChat.classList.add('active');
+                    if (btnOutcomes) btnOutcomes.classList.remove('active');
+                }
+            } else {
+                if (outcomesPane) outcomesPane.style.display = 'flex';
+                if (chatPane) chatPane.style.display = 'flex';
+            }
+        }
+        window.setMobileProfileTab = setMobileProfileTab;
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                const outcomesPane = document.getElementById('profile-outcomes-pane');
+                const chatPane = document.getElementById('profile-chat-pane');
+                if (outcomesPane) outcomesPane.style.display = 'flex';
+                if (chatPane) chatPane.style.display = 'flex';
+            } else {
+                const activeBtn = document.querySelector('.mobile-seg-btn.active');
+                if (activeBtn && activeBtn.id === 'btn-show-outcomes') {
+                    setMobileProfileTab('outcomes');
+                } else {
+                    setMobileProfileTab('chat');
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.innerWidth <= 768) {
+                setMobileProfileTab('chat');
+            }
+        });
     </script>
 </body>
 </html>
