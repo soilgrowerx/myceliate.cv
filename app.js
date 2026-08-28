@@ -947,49 +947,101 @@ async function getUserVaultIndex(username = 'george') {
     const now = Date.now();
     const cached = userVaultCaches.get(cleanUser);
 
-    if (cached && (now - cached.timestamp < USER_CACHE_TTL_MS)) {
+    if (cached && (now - cached.timestamp < USER_CACHE_TTL_MS) && Array.isArray(cached.docs) && cached.docs.length > 0) {
         return cached.docs;
     }
 
     // 1. Operator / Foundation User ('george') gets full canonical MCP brain
     if (cleanUser === 'george') {
         try {
-            const payload = {
-                jsonrpc: "2.0",
-                id: Date.now(),
-                method: "tools/call",
-                params: { name: "brain_list", arguments: {} }
-            };
-            const mcpRes = await fetchBrain(MYCELIAL_BRAIN_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            let allParsedDocs = [];
+            let offset = 0;
+            let hasMore = true;
+            let page = 0;
+            const maxPages = 10; // up to 5000 docs
+            while (hasMore && page < maxPages) {
+                page++;
+                const payload = {
+                    jsonrpc: "2.0",
+                    id: Date.now() + page,
+                    method: "tools/call",
+                    params: { name: "brain_list", arguments: { limit: 500, offset } }
+                };
+                const mcpRes = await fetchBrain(MYCELIAL_BRAIN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            if (mcpRes.ok) {
-                const data = await mcpRes.json();
-                if (data.result && data.result.content && data.result.content[0]?.text) {
-                    const parsed = JSON.parse(data.result.content[0].text);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        const docs = parsed.map(d => {
-                            const tags = Array.isArray(d.tags) ? d.tags : [];
-                            const domain = d.domain || inferDocDomain(d.path, tags);
-                            const title = d.title || inferDocTitle(d.path, tags, d.content);
-                            return {
-                                path: d.path,
-                                title,
-                                domain,
-                                tags,
-                                content: d.content || ''
-                            };
-                        });
-                        userVaultCaches.set('george', { timestamp: now, docs });
-                        return docs;
+                if (mcpRes.ok) {
+                    const data = await mcpRes.json();
+                    if (data.result && data.result.content && data.result.content[0]?.text) {
+                        const parsed = JSON.parse(data.result.content[0].text);
+                        const rawList = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.docs) ? parsed.docs : []);
+                        if (rawList.length > 0) {
+                            allParsedDocs.push(...rawList);
+                            if (parsed.has_more && rawList.length > 0) {
+                                offset += rawList.length;
+                            } else {
+                                hasMore = false;
+                            }
+                        } else {
+                            hasMore = false;
+                        }
+                    } else {
+                        hasMore = false;
                     }
+                } else {
+                    hasMore = false;
                 }
+            }
+
+            if (allParsedDocs.length > 0) {
+                const docs = allParsedDocs.map(d => {
+                    const tags = Array.isArray(d.tags) ? d.tags : [];
+                    const domain = d.domain || inferDocDomain(d.path, tags);
+                    const title = d.title || inferDocTitle(d.path, tags, d.content);
+                    return {
+                        path: d.path,
+                        title,
+                        domain,
+                        tags,
+                        content: d.content || ''
+                    };
+                });
+                userVaultCaches.set('george', { timestamp: now, docs });
+                return docs;
             }
         } catch (e) {
             console.warn("Failed to fetch operator vault from MCP:", e.message);
+        }
+
+        // Local filesystem fallback for 'george' if MCP is unreachable
+        try {
+            const localFallbackDocs = [];
+            const localDir = __dirname;
+            if (fs.existsSync(localDir)) {
+                const files = fs.readdirSync(localDir);
+                for (const f of files) {
+                    if (f.endsWith('.md') && (f.startsWith('doc-') || f.startsWith('SPEC') || f.startsWith('PROMOTION') || f.startsWith('ANTIGRAVITY'))) {
+                        const docPath = f.replace(/\.md$/, '');
+                        const content = fs.readFileSync(path.join(localDir, f), 'utf8');
+                        localFallbackDocs.push({
+                            path: docPath,
+                            title: inferDocTitle(docPath, [], content),
+                            domain: inferDocDomain(docPath, []),
+                            tags: ['local-fallback'],
+                            content
+                        });
+                    }
+                }
+            }
+            if (localFallbackDocs.length > 0) {
+                userVaultCaches.set('george', { timestamp: now, docs: localFallbackDocs });
+                return localFallbackDocs;
+            }
+        } catch (err) {
+            console.warn("Local fallback error:", err.message);
         }
     }
 
@@ -1224,9 +1276,10 @@ ${content}
     }
 });
 
-app.get('/api/brain/read/:docId', async (req, res) => {
-    let docId = req.params.docId;
-    if (!docId.startsWith('doc-')) docId = 'doc-' + docId;
+app.get('/api/brain/read/:docId(*)', async (req, res) => {
+    let docId = req.params.docId || req.params[0];
+    if (!docId) return res.status(400).json({ error: 'docId is required' });
+    if (/^\d+$/.test(docId)) docId = 'doc-' + docId;
 
     const userScope = req.authContext?.username || 'george';
     const isOperator = (req.authContext?.role === 'operator' || userScope === 'george');
@@ -1243,7 +1296,7 @@ app.get('/api/brain/read/:docId', async (req, res) => {
                     arguments: { path: docId }
                 }
             };
-            const mcpRes = await fetch(MYCELIAL_BRAIN_URL, {
+            const mcpRes = await fetchBrain(MYCELIAL_BRAIN_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -1256,16 +1309,23 @@ app.get('/api/brain/read/:docId', async (req, res) => {
             }
         } catch (e) {}
 
-        const localFile = path.join(__dirname, `${docId}.md`);
-        if (fs.existsSync(localFile)) {
-            try {
-                const content = fs.readFileSync(localFile, 'utf8');
-                return res.json({
-                    result: {
-                        content: [{ type: "text", text: content }]
-                    }
-                });
-            } catch (e) {}
+        const localCandidates = [
+            path.join(__dirname, `${docId}.md`),
+            path.join(__dirname, `${docId}`),
+            path.join(__dirname, '..', '..', 'LIBRARY', 'Brain_Export', `${docId}.md`),
+            path.join(__dirname, '..', '..', 'LIBRARY', 'Brain_Export', `${docId}`)
+        ];
+        for (const localFile of localCandidates) {
+            if (fs.existsSync(localFile) && fs.statSync(localFile).isFile()) {
+                try {
+                    const content = fs.readFileSync(localFile, 'utf8');
+                    return res.json({
+                        result: {
+                            content: [{ type: "text", text: content }]
+                        }
+                    });
+                } catch (e) {}
+            }
         }
     }
 
@@ -2060,9 +2120,10 @@ app.post('/query', async (req, res) => {
                     const listText = listData.result.content[0].text;
                     try {
                         const parsedList = JSON.parse(listText);
-                        if (Array.isArray(parsedList) && parsedList.length > 0) {
+                        const rawList = Array.isArray(parsedList) ? parsedList : (Array.isArray(parsedList?.docs) ? parsedList.docs : []);
+                        if (rawList.length > 0) {
                             const filterTags = ['deprecated', 'pecan-pi', 'bug', 'fix', 'changelog', 'system-doc', 'private', 'financial', 'pii', 'personal-medical'];
-                            const cleanList = parsedList.filter(doc => {
+                            const cleanList = rawList.filter(doc => {
                                 const docTags = doc.tags || [];
                                 return !docTags.some(tag => filterTags.includes(tag));
                             });

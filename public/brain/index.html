@@ -1345,14 +1345,24 @@
         }
 
         // --- Library Logic ---
+        let currentActiveDocPath = null;
         async function loadLibraryCatalog() {
             try {
-                const res = await fetch('/api/brain/list?limit=500');
+                const res = await fetch('/api/brain/list?limit=2000');
                 if (res.ok) {
                     const data = await res.json();
                     allLibraryDocs = data.docs || [];
-                    document.getElementById('doc-count-badge').textContent = allLibraryDocs.length + ' docs';
+                    const count = data.total !== undefined ? data.total : allLibraryDocs.length;
+                    const badge = document.getElementById('doc-count-badge');
+                    if (badge) badge.textContent = count + ' docs';
                     renderLibraryDocs(allLibraryDocs);
+
+                    // Check URL parameter for ?doc= (e.g. ?doc=doc-55)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const targetDoc = urlParams.get('doc');
+                    if (targetDoc) {
+                        readLibraryDoc(targetDoc);
+                    }
                 }
             } catch (e) {
                 console.error("Library load error:", e);
@@ -1361,12 +1371,13 @@
 
         function renderLibraryDocs(docs) {
             const listEl = document.getElementById('library-doc-list');
+            if (!listEl) return;
             if (!docs.length) {
                 listEl.innerHTML = '<div style="padding:16px; color:var(--text-muted); font-size:0.8rem;">No documents matched filter.</div>';
                 return;
             }
-            listEl.innerHTML = docs.slice(0, 100).map(d => `
-                <div class="doc-item" onclick="readLibraryDoc('${d.path}')">
+            listEl.innerHTML = docs.slice(0, 500).map(d => `
+                <div class="doc-item ${currentActiveDocPath === d.path ? 'active' : ''}" onclick="readLibraryDoc('${d.path.replace(/'/g, "\\'")}')">
                     <div class="doc-item-title">${d.title || d.path}</div>
                     <div class="doc-item-meta">
                         <span>${d.path}</span>
@@ -1377,27 +1388,49 @@
         }
 
         async function readLibraryDoc(path) {
+            currentActiveDocPath = path;
+            renderLibraryDocs(allLibraryDocs);
+            const reader = document.getElementById('library-reader');
+            if (reader) {
+                reader.innerHTML = '<div style="padding:20px; color:var(--text-muted);">Loading document...</div>';
+            }
             try {
-                const res = await fetch('/api/brain/read/' + path);
+                const res = await fetch('/api/brain/read/' + encodeURIComponent(path));
                 if (res.ok) {
                     const data = await res.json();
-                    const text = data?.result?.content?.[0]?.text || 'No document content found.';
-                    document.getElementById('library-reader').innerHTML = marked.parse(text);
+                    const text = data?.result?.content?.[0]?.text || data?.content || 'No document content found.';
+                    if (reader) reader.innerHTML = marked.parse(text);
+                } else {
+                    if (reader) reader.innerHTML = `<div style="padding:20px; color:var(--accent-red,#ff5555);">Failed to load document (${res.status}).</div>`;
                 }
             } catch (e) {
                 console.error("Doc read error:", e);
+                if (reader) reader.innerHTML = `<div style="padding:20px; color:var(--accent-red,#ff5555);">Error loading document: ${e.message}</div>`;
             }
         }
 
         function filterByTag(tag) {
-            if (!tag) renderLibraryDocs(allLibraryDocs);
-            else renderLibraryDocs(allLibraryDocs.filter(d => (d.tags || []).some(t => t.toLowerCase().includes(tag))));
+            document.querySelectorAll('#tag-pills-container .tag-pill').forEach(btn => {
+                btn.classList.remove('active');
+                if ((!tag && btn.textContent.trim() === 'All') || (tag && btn.textContent.trim().toLowerCase() === tag.toLowerCase())) {
+                    btn.classList.add('active');
+                }
+            });
+            if (!tag) {
+                renderLibraryDocs(allLibraryDocs);
+            } else {
+                renderLibraryDocs(allLibraryDocs.filter(d => 
+                    (d.tags || []).some(t => t.toLowerCase().includes(tag.toLowerCase())) || 
+                    (d.path || '').toLowerCase().includes(tag.toLowerCase()) ||
+                    (d.domain || '').toLowerCase().includes(tag.toLowerCase())
+                ));
+            }
         }
 
         function handleLibrarySearch(val) {
-            const q = val.trim().toLowerCase();
+            const q = (val || '').trim().toLowerCase();
             if (!q) renderLibraryDocs(allLibraryDocs);
-            else renderLibraryDocs(allLibraryDocs.filter(d => (d.title + ' ' + (d.tags || []).join(' ')).toLowerCase().includes(q)));
+            else renderLibraryDocs(allLibraryDocs.filter(d => (d.title + ' ' + d.path + ' ' + (d.tags || []).join(' ')).toLowerCase().includes(q)));
         }
 
         // --- Professional Profile Logic ---
