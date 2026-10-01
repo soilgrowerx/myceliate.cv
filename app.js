@@ -872,9 +872,9 @@ app.get('/stim', (req, res) => {
 // Phase 3: Brain Telemetry Endpoint
 app.get('/api/brain/telemetry', async (req, res) => {
     const startTime = Date.now();
-    let mcpStatus = 'online';
-    let gcsHealth = 'optimal';
-    let latencyMs = 24;
+    let mcpStatus = 'offline';
+    let gcsHealth = 'unknown';
+    let latencyMs = null;
     
     try {
         const pingPayload = {
@@ -888,11 +888,19 @@ app.get('/api/brain/telemetry', async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pingPayload)
         });
-        latencyMs = Date.now() - startTime;
-        if (!mcpRes.ok) mcpStatus = 'degraded';
+        if (mcpRes.ok) {
+            latencyMs = Date.now() - startTime;
+            mcpStatus = 'online';
+            gcsHealth = 'optimal';
+        } else {
+            latencyMs = Date.now() - startTime;
+            mcpStatus = 'degraded';
+            gcsHealth = 'degraded';
+        }
     } catch (e) {
         mcpStatus = 'offline';
-        gcsHealth = 'local-fallback';
+        gcsHealth = 'offline';
+        latencyMs = null;
     }
 
     res.json({
@@ -901,11 +909,11 @@ app.get('/api/brain/telemetry', async (req, res) => {
         gcs_health: gcsHealth,
         query_latency_ms: latencyMs,
         active_agents: [
-            { name: 'Bodhi', role: 'Business / Arboracle', status: 'active', pulse: 'live' },
-            { name: 'Thea', role: 'Education / Neocambrian', status: 'active', pulse: 'live' },
-            { name: 'Sylvan', role: 'Research / Understory', status: 'active', pulse: 'live' },
-            { name: 'Reata', role: 'Real Estate / Land', status: 'idle', pulse: 'ready' },
-            { name: 'George', role: 'Operator / Foundation', status: 'authenticated', pulse: 'live' }
+            { name: 'Bodhi', role: 'Business / Arboracle', status: 'active', pulse: 'live', source: 'static' },
+            { name: 'Thea', role: 'Education / Neocambrian', status: 'active', pulse: 'live', source: 'static' },
+            { name: 'Sylvan', role: 'Research / Understory', status: 'active', pulse: 'live', source: 'static' },
+            { name: 'Reata', role: 'Real Estate / Land', status: 'idle', pulse: 'ready', source: 'static' },
+            { name: 'George', role: 'Operator / Foundation', status: 'authenticated', pulse: 'live', source: 'static' }
         ],
         last_sync: new Date().toISOString()
     });
@@ -1210,6 +1218,285 @@ app.get('/api/brain/list', async (req, res) => {
         limit: allDocs.length,
         user: userScope,
         has_more: false
+    });
+});
+
+// =========================================================================
+// Recency Digest Plumbing (anti-SEARCH_QUERY platform-native digest)
+// =========================================================================
+const digestDocCache = new Map();
+const DIGEST_CACHE_TTL_MS = 30 * 60 * 1000;
+
+function parseDigestMetadata(content, docPath) {
+    const meta = {
+        path: docPath,
+        title: '',
+        owner: null,
+        author: null,
+        timestamp: null,
+        timestampMs: 0,
+        size: content ? Buffer.byteLength(content, 'utf8') : 0,
+        preview: ''
+    };
+    if (!content || typeof content !== 'string') return meta;
+
+    // 1. YAML frontmatter parsing
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    let body = content;
+    if (fmMatch) {
+        body = content.slice(fmMatch[0].length).trim();
+        for (const line of fmMatch[1].split('\n')) {
+            const idx = line.indexOf(':');
+            if (idx !== -1) {
+                const key = line.slice(0, idx).trim().toLowerCase();
+                const val = line.slice(idx + 1).trim().replace(/^['"]|['"]$/g, '');
+                if (key === 'title' && !meta.title) meta.title = val;
+                if (key === 'owner' && !meta.owner) meta.owner = val;
+                if (key === 'author' && !meta.author) meta.author = val;
+                if ((key === 'timestamp' || key === 'date' || key === 'created' || key === 'updated') && !meta.timestamp) {
+                    meta.timestamp = val;
+                }
+                if (key === 'summary' && !meta.preview) meta.preview = val;
+            }
+        }
+    }
+
+    // 2. Inline list item timestamp (such as daily-status format)
+    if (!meta.timestamp) {
+        const tsMatch = content.match(/(?:^|\n)(?:-\s*)?timestamp(?:_utc)?:\s*([^\r\n]+)/i);
+        if (tsMatch) {
+            meta.timestamp = tsMatch[1].trim();
+        }
+    }
+
+    // 3. Fallback date from path
+    if (!meta.timestamp) {
+        const pathMatch = docPath.match(/(202[4-9]-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?)/);
+        if (pathMatch) {
+            meta.timestamp = pathMatch[1];
+        }
+    }
+
+    // 4. Fallback timestamp from epoch in path
+    if (!meta.timestamp) {
+        const epochMatch = docPath.match(/(?:outcome_|quick-|seed-)(\d{10,13})/);
+        if (epochMatch) {
+            const epoch = parseInt(epochMatch[1], 10);
+            const d = new Date(epoch > 1e11 ? epoch : epoch * 1000);
+            if (!isNaN(d.getTime())) {
+                meta.timestamp = d.toISOString();
+            }
+        }
+    }
+
+    if (meta.timestamp) {
+        const parsed = new Date(meta.timestamp).getTime();
+        if (!isNaN(parsed)) meta.timestampMs = parsed;
+    }
+
+    if (!meta.title) {
+        const h1 = content.match(/^#\s+(.+)$/m);
+        if (h1) meta.title = h1[1].trim();
+        else meta.title = docPath;
+    }
+
+    if (!meta.preview) {
+        const cleanBody = body.replace(/#+\s+/g, '').replace(/\r?\n+/g, ' ').trim();
+        meta.preview = cleanBody.slice(0, 180) + (cleanBody.length > 180 ? '...' : '');
+    }
+
+    return meta;
+}
+
+async function fetchDocContentForDigest(docPath, userScope) {
+    const cached = digestDocCache.get(docPath);
+    if (cached && (Date.now() - cached.fetchedAt < DIGEST_CACHE_TTL_MS)) {
+        return cached.meta;
+    }
+
+    let content = '';
+    const isOperator = (userScope === 'george');
+
+    if (isOperator) {
+        try {
+            const payload = {
+                jsonrpc: "2.0",
+                id: Date.now(),
+                method: "tools/call",
+                params: { name: "brain_read", arguments: { path: docPath } }
+            };
+            const mcpRes = await fetchBrain(MYCELIAL_BRAIN_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (mcpRes.ok) {
+                const data = await mcpRes.json();
+                content = data?.result?.content?.[0]?.text || '';
+            }
+        } catch (e) {}
+
+        if (!content) {
+            const localCandidates = [
+                path.join(__dirname, `${docPath}.md`),
+                path.join(__dirname, `${docPath}`),
+                path.join(__dirname, '..', '..', 'LIBRARY', 'Brain_Export', `${docPath}.md`),
+                path.join(__dirname, '..', '..', 'LIBRARY', 'Brain_Export', `${docPath}`)
+            ];
+            for (const localFile of localCandidates) {
+                if (fs.existsSync(localFile) && fs.statSync(localFile).isFile()) {
+                    try {
+                        content = fs.readFileSync(localFile, 'utf8');
+                        break;
+                    } catch (e) {}
+                }
+            }
+        }
+    } else {
+        const userProfile = userRegistry.get(userScope);
+        const userDoc = (userProfile?.docs || []).find(d => d.path === docPath);
+        if (userDoc?.content) {
+            content = userDoc.content;
+        }
+    }
+
+    const meta = parseDigestMetadata(content, docPath);
+    digestDocCache.set(docPath, { fetchedAt: Date.now(), meta });
+    return meta;
+}
+
+// Phase 3: Recency Digest Endpoint (Task A - platform-native recency digest)
+app.get('/api/brain/digest', async (req, res) => {
+    const userScope = req.authContext?.username || 'george';
+    const hours = Math.max(1, parseFloat(req.query.hours) || 24);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 50), 200);
+
+    let allDocs = await getUserVaultIndex(userScope);
+    if (userScope === 'george' && (!allDocs || allDocs.length === 0)) {
+        allDocs = await performFullTextSearch('', 2000, 'george');
+    }
+    if (!allDocs) allDocs = [];
+
+    const now = Date.now();
+    const windowMs = hours * 3600 * 1000;
+    const cutoffMs = now - windowMs;
+
+    const candidates = [];
+    let anyUsableTimestamp = false;
+
+    for (const doc of allDocs) {
+        let estTimestampMs = 0;
+
+        if (doc.timestamp) {
+            const t = new Date(doc.timestamp).getTime();
+            if (!isNaN(t)) {
+                estTimestampMs = t;
+                anyUsableTimestamp = true;
+            }
+        }
+
+        if (!estTimestampMs) {
+            const m = doc.path.match(/(202[4-9]-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?)/);
+            if (m) {
+                const t = new Date(m[1]).getTime();
+                if (!isNaN(t)) {
+                    estTimestampMs = t;
+                    anyUsableTimestamp = true;
+                }
+            }
+        }
+
+        if (!estTimestampMs) {
+            const hb = doc.path.match(/heartbeat-(\d{4}-\d{2}-\d{2})-(\d{2})/);
+            if (hb) {
+                const t = new Date(`${hb[1]}T${hb[2]}:00:00`).getTime();
+                if (!isNaN(t)) {
+                    estTimestampMs = t;
+                    anyUsableTimestamp = true;
+                }
+            }
+        }
+
+        if (!estTimestampMs) {
+            const ep = doc.path.match(/(?:outcome_|quick-|seed-)(\d{10,13})/);
+            if (ep) {
+                const rawEp = parseInt(ep[1], 10);
+                const t = rawEp > 1e11 ? rawEp : rawEp * 1000;
+                estTimestampMs = t;
+                anyUsableTimestamp = true;
+            }
+        }
+
+        if (!estTimestampMs && Array.isArray(doc.tags)) {
+            for (const tag of doc.tags) {
+                if (/^202[4-9]-\d{2}-\d{2}$/.test(tag)) {
+                    const t = new Date(tag).getTime();
+                    if (!isNaN(t)) {
+                        estTimestampMs = t;
+                        anyUsableTimestamp = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (estTimestampMs >= (cutoffMs - 36 * 3600 * 1000) && estTimestampMs <= (now + 3600 * 1000)) {
+            candidates.push({ doc, estTimestampMs });
+        }
+    }
+
+    if (!anyUsableTimestamp && allDocs.length > 0) {
+        for (const doc of allDocs.slice(0, 50)) {
+            if (doc.content) {
+                const m = parseDigestMetadata(doc.content, doc.path);
+                if (m.timestampMs > 0) {
+                    anyUsableTimestamp = true;
+                    if (m.timestampMs >= cutoffMs && m.timestampMs <= (now + 60000)) {
+                        candidates.push({ doc, estTimestampMs: m.timestampMs });
+                    }
+                }
+            }
+        }
+    }
+
+    if (!anyUsableTimestamp) {
+        return res.json({
+            total: 0,
+            window_hours: hours,
+            usable_timestamps: false,
+            docs: [],
+            message: 'The document index carries no usable timestamps. Recency filtering could not be determined.'
+        });
+    }
+
+    const resolvedDocs = [];
+    for (const item of candidates) {
+        const meta = await fetchDocContentForDigest(item.doc.path, userScope);
+        if (!meta.title && item.doc.title) meta.title = item.doc.title;
+        const finalTimeMs = meta.timestampMs || item.estTimestampMs;
+        if (finalTimeMs >= cutoffMs && finalTimeMs <= (now + 60000)) {
+            resolvedDocs.push({
+                path: meta.path,
+                title: meta.title || meta.path,
+                timestamp: meta.timestamp || new Date(finalTimeMs).toISOString(),
+                timestampMs: finalTimeMs,
+                owner: meta.owner,
+                author: meta.author,
+                size: meta.size,
+                preview: meta.preview
+            });
+        }
+    }
+
+    resolvedDocs.sort((a, b) => b.timestampMs - a.timestampMs);
+    const sliced = resolvedDocs.slice(0, limit).map(({ timestampMs, ...rest }) => rest);
+
+    res.json({
+        total: resolvedDocs.length,
+        window_hours: hours,
+        usable_timestamps: true,
+        docs: sliced,
+        message: sliced.length === 0 ? `No documents written in the last ${hours}h.` : null
     });
 });
 

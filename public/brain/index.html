@@ -1082,7 +1082,7 @@
                 </button>
                 <button type="button" class="ws-tab-btn" id="tab-btn-profile" onclick="switchMainTab('profile')">
                     <span>👤 Professional Profile</span>
-                    <span class="meter-pill" id="tab-meter-pill">100%</span>
+                    <span class="meter-pill" id="tab-meter-pill">--</span>
                 </button>
                 <button type="button" class="ws-tab-btn" id="tab-btn-preview" onclick="switchMainTab('preview')">
                     <span>👁️ Recruiter Preview</span>
@@ -1106,7 +1106,11 @@
             <div class="panel-left">
                 <div class="panel-header">
                     <span>Brain Catalog</span>
-                    <span id="doc-count-badge">1,396 docs</span>
+                    <span id="doc-count-badge">Loading docs...</span>
+                </div>
+                <div class="catalog-mode-bar" id="catalog-mode-bar" style="display:flex; gap:6px; padding:8px 12px; background:var(--bg-surface-elevated); border-bottom:1px solid var(--border-subtle);">
+                    <button type="button" class="tag-pill active" id="btn-mode-all" onclick="switchCatalogMode('all')">All Entries</button>
+                    <button type="button" class="tag-pill" id="btn-mode-recent" onclick="switchCatalogMode('recent')">Recent Digest</button>
                 </div>
                 <div class="tag-pills-bar" id="tag-pills-container">
                     <button class="tag-pill active" onclick="filterByTag('')">All</button>
@@ -1114,6 +1118,11 @@
                     <button class="tag-pill" onclick="filterByTag('mcp')">MCP</button>
                     <button class="tag-pill" onclick="filterByTag('stim')">STIM</button>
                     <button class="tag-pill" onclick="filterByTag('architecture')">Architecture</button>
+                </div>
+                <div class="tag-pills-bar" id="recent-window-bar" style="display:none; gap:6px; padding:10px 14px; background:var(--bg-obsidian); border-bottom:1px solid var(--border-subtle);">
+                    <button type="button" class="tag-pill active" id="pill-win-24" onclick="setDigestWindow(24)">Last 24h</button>
+                    <button type="button" class="tag-pill" id="pill-win-48" onclick="setDigestWindow(48)">Last 48h</button>
+                    <button type="button" class="tag-pill" id="pill-win-168" onclick="setDigestWindow(168)">Last 7d</button>
                 </div>
                 <div class="doc-directory" id="library-doc-list">
                     <!-- Doc list renders here -->
@@ -1123,6 +1132,17 @@
             <!-- Center: Search & Reader -->
             <div class="panel-center">
                 <div class="search-container">
+                    <div id="center-recent-strip" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-secondary);">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="color:var(--accent-gold);">⚡ Recency Digest:</span>
+                            <span id="center-digest-label">Last 24h · Loading...</span>
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="tag-pill active" id="center-pill-24" onclick="setDigestWindow(24)">24h</button>
+                            <button type="button" class="tag-pill" id="center-pill-48" onclick="setDigestWindow(48)">48h</button>
+                            <button type="button" class="tag-pill" id="center-pill-168" onclick="setDigestWindow(168)">7d</button>
+                        </div>
+                    </div>
                     <div class="search-box">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         <input type="text" id="library-search-input" placeholder="Search full brain substrate..." oninput="handleLibrarySearch(this.value)">
@@ -1137,11 +1157,17 @@
             <!-- Right: Telemetry -->
             <div class="panel-right">
                 <div class="panel-header">System Telemetry</div>
-                <div style="padding:16px; font-family:var(--font-mono); font-size:0.8rem; color:var(--text-secondary);">
+                <div id="system-telemetry-body" style="padding:16px; font-family:var(--font-mono); font-size:0.8rem; color:var(--text-secondary);">
                     <div style="margin-bottom:12px;"><span style="color:var(--accent-gold);">Substrate:</span> Sovereign GCS</div>
-                    <div style="margin-bottom:12px;"><span style="color:var(--hyphae-green-bright);">Status:</span> Active (100% Traffic)</div>
-                    <div style="margin-bottom:12px;"><span style="color:var(--text-primary);">Tier:</span> Sovereign ($4/mo)</div>
+                    <div style="margin-bottom:12px;"><span style="color:var(--hyphae-green-bright);">MCP Probe:</span> <span id="telem-mcp-status">Checking...</span></div>
+                    <div style="margin-bottom:12px;"><span style="color:var(--text-primary);">Latency:</span> <span id="telem-latency">Measuring...</span></div>
                     <div style="margin-bottom:12px;"><span style="color:var(--text-muted);">Namespace:</span> users/george</div>
+                    <div style="margin-top:16px; border-top:1px solid var(--border-subtle); padding-top:12px;">
+                        <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Agent Roster (Labeled)</div>
+                        <div id="telem-agent-list" style="display:flex; flex-direction:column; gap:6px;">
+                            <!-- Active agents render here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1157,12 +1183,12 @@
                 <div class="meter-left">
                     <div>
                         <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase;">Profile Completeness</div>
-                        <div class="meter-score-text" id="meter-score-display">100%</div>
+                        <div class="meter-score-text" id="meter-score-display">--</div>
                     </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar-fill" id="progress-bar-fill" style="width: 100%;"></div>
+                        <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
                     </div>
-                    <div class="meter-milestone-text" id="meter-milestone-display">Your profile is 100% complete! Recruiter preview is primed.</div>
+                    <div class="meter-milestone-text" id="meter-milestone-display">Calculating completeness...</div>
                 </div>
                 <button type="button" class="btn-add-entry" onclick="openEntryModal()">
                     <span>+ Add Profile Entry</span>
@@ -1329,9 +1355,14 @@
         let profileEntries = [];
         let selectedTypeFilter = '';
         let currentEditingEntry = null;
+        let currentCatalogMode = 'all'; // 'all' or 'recent'
+        let currentDigestHours = 24;
+        let digestData = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadLibraryCatalog();
+            loadDigest(24);
+            loadSystemTelemetry();
             loadProfileEntries();
             loadSuggestions();
         });
@@ -1354,8 +1385,8 @@
                     allLibraryDocs = data.docs || [];
                     const count = data.total !== undefined ? data.total : allLibraryDocs.length;
                     const badge = document.getElementById('doc-count-badge');
-                    if (badge) badge.textContent = count + ' docs';
-                    renderLibraryDocs(allLibraryDocs);
+                    if (badge && currentCatalogMode === 'all') badge.textContent = count + ' docs';
+                    if (currentCatalogMode === 'all') renderLibraryDocs(allLibraryDocs);
 
                     // Check URL parameter for ?doc= (e.g. ?doc=doc-55)
                     const urlParams = new URLSearchParams(window.location.search);
@@ -1366,6 +1397,170 @@
                 }
             } catch (e) {
                 console.error("Library load error:", e);
+            }
+        }
+
+        async function loadDigest(hours = 24) {
+            currentDigestHours = hours;
+            const badge = document.getElementById('doc-count-badge');
+            const centerLabel = document.getElementById('center-digest-label');
+            const listEl = document.getElementById('library-doc-list');
+
+            if (currentCatalogMode === 'recent' && listEl) {
+                listEl.innerHTML = '<div style="padding:16px; color:var(--text-muted); font-size:0.8rem;">Loading recent digest...</div>';
+            }
+
+            try {
+                const res = await fetch(`/api/brain/digest?hours=${hours}&limit=50`);
+                if (res.ok) {
+                    digestData = await res.json();
+                    const docs = digestData.docs || [];
+                    const count = digestData.total !== undefined ? digestData.total : docs.length;
+                    const windowLabel = hours >= 168 ? 'Last 7d' : (hours >= 48 ? 'Last 48h' : `Last ${hours}h`);
+                    const summaryLabel = `${windowLabel} · ${count} ${count === 1 ? 'entry' : 'entries'}`;
+
+                    if (centerLabel) centerLabel.textContent = summaryLabel;
+                    if (currentCatalogMode === 'recent') {
+                        if (badge) badge.textContent = summaryLabel;
+                        renderDigestDocs(digestData);
+                    }
+                } else {
+                    if (centerLabel) centerLabel.textContent = `Digest unavailable (${res.status})`;
+                    if (currentCatalogMode === 'recent' && listEl) {
+                        listEl.innerHTML = `<div style="padding:16px; color:var(--accent-red,#ff5555); font-size:0.8rem;">Failed to load digest (${res.status}).</div>`;
+                    }
+                }
+            } catch (e) {
+                console.error("Digest load error:", e);
+                if (centerLabel) centerLabel.textContent = 'Digest unavailable';
+                if (currentCatalogMode === 'recent' && listEl) {
+                    listEl.innerHTML = `<div style="padding:16px; color:var(--accent-red,#ff5555); font-size:0.8rem;">Error loading digest: ${e.message}</div>`;
+                }
+            }
+        }
+
+        function renderDigestDocs(data) {
+            const listEl = document.getElementById('library-doc-list');
+            if (!listEl) return;
+
+            if (!data || !data.usable_timestamps) {
+                listEl.innerHTML = `<div style="padding:16px; color:var(--text-muted); font-size:0.8rem; line-height:1.5;">${data?.message || 'The document index carries no usable timestamps. Recency filtering could not be determined.'}</div>`;
+                return;
+            }
+
+            const docs = data.docs || [];
+            if (!docs.length) {
+                const windowLabel = currentDigestHours >= 168 ? '7d' : `${currentDigestHours}h`;
+                listEl.innerHTML = `<div style="padding:16px; color:var(--text-muted); font-size:0.8rem; line-height:1.5;">No documents written in the last ${windowLabel}.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = docs.map(d => {
+                let timeStr = d.timestamp || '';
+                try {
+                    const dt = new Date(d.timestamp);
+                    if (!isNaN(dt.getTime())) {
+                        timeStr = dt.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    }
+                } catch (e) {}
+
+                const authorTag = d.author ? ` · ${d.author}` : (d.owner ? ` · ${d.owner}` : '');
+                const sizeTag = d.size ? ` · ${(d.size / 1024).toFixed(1)} KB` : '';
+
+                return `
+                    <div class="doc-item ${currentActiveDocPath === d.path ? 'active' : ''}" onclick="readLibraryDoc('${d.path.replace(/'/g, "\\'")}')">
+                        <div class="doc-item-title">${d.title || d.path}</div>
+                        <div class="doc-item-meta" style="display:flex; flex-direction:column; gap:2px; font-size:0.7rem; color:var(--text-muted); margin-top:4px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:var(--accent-gold); font-family:var(--font-mono);">${timeStr}</span>
+                                <span>${d.path}</span>
+                            </div>
+                            ${d.preview ? `<div style="font-size:0.72rem; color:var(--text-secondary); line-height:1.3; margin-top:2px;">${d.preview}</div>` : ''}
+                            <div style="font-size:0.68rem; color:var(--text-muted);">${authorTag}${sizeTag}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function switchCatalogMode(mode) {
+            currentCatalogMode = mode;
+            const btnAll = document.getElementById('btn-mode-all');
+            const btnRecent = document.getElementById('btn-mode-recent');
+            const tagPills = document.getElementById('tag-pills-container');
+            const windowBar = document.getElementById('recent-window-bar');
+            const badge = document.getElementById('doc-count-badge');
+
+            if (mode === 'recent') {
+                if (btnAll) btnAll.classList.remove('active');
+                if (btnRecent) btnRecent.classList.add('active');
+                if (tagPills) tagPills.style.display = 'none';
+                if (windowBar) windowBar.style.display = 'flex';
+                loadDigest(currentDigestHours);
+            } else {
+                if (btnAll) btnAll.classList.add('active');
+                if (btnRecent) btnRecent.classList.remove('active');
+                if (tagPills) tagPills.style.display = 'flex';
+                if (windowBar) windowBar.style.display = 'none';
+                if (badge) badge.textContent = allLibraryDocs.length + ' docs';
+                renderLibraryDocs(allLibraryDocs);
+            }
+        }
+
+        function setDigestWindow(hours) {
+            currentDigestHours = hours;
+            [24, 48, 168].forEach(h => {
+                const pillLeft = document.getElementById(`pill-win-${h}`);
+                const pillCenter = document.getElementById(`center-pill-${h}`);
+                if (pillLeft) {
+                    if (h === hours) pillLeft.classList.add('active');
+                    else pillLeft.classList.remove('active');
+                }
+                if (pillCenter) {
+                    if (h === hours) pillCenter.classList.add('active');
+                    else pillCenter.classList.remove('active');
+                }
+            });
+            if (currentCatalogMode !== 'recent') {
+                switchCatalogMode('recent');
+            } else {
+                loadDigest(hours);
+            }
+        }
+
+        async function loadSystemTelemetry() {
+            try {
+                const res = await fetch('/api/brain/telemetry');
+                if (res.ok) {
+                    const data = await res.json();
+                    const statusEl = document.getElementById('telem-mcp-status');
+                    const latencyEl = document.getElementById('telem-latency');
+                    const listEl = document.getElementById('telem-agent-list');
+
+                    if (statusEl) {
+                        const color = data.mcp_status === 'online' ? 'var(--hyphae-green-bright)' : (data.mcp_status === 'degraded' ? 'var(--accent-gold)' : 'var(--accent-red,#ff5555)');
+                        statusEl.innerHTML = `<span style="color:${color}; font-weight:600;">${data.mcp_status}</span> (${data.gcs_health})`;
+                    }
+
+                    if (latencyEl) {
+                        if (data.query_latency_ms !== null && data.query_latency_ms !== undefined) {
+                            latencyEl.textContent = `${data.query_latency_ms} ms (live probe)`;
+                        } else {
+                            latencyEl.textContent = 'unavailable';
+                        }
+                    }
+
+                    if (listEl && Array.isArray(data.active_agents)) {
+                        listEl.innerHTML = data.active_agents.map(a => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+                                <span><strong style="color:var(--text-primary);">${a.name}</strong> <span style="font-size:0.68rem; color:var(--text-muted);">[${a.source || 'static'}]</span></span>
+                                <span style="color:${a.status === 'active' ? 'var(--hyphae-green-bright)' : 'var(--text-muted)'};">${a.pulse || a.status}</span>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (e) {
+                console.error("Telemetry load error:", e);
             }
         }
 
@@ -1389,7 +1584,11 @@
 
         async function readLibraryDoc(path) {
             currentActiveDocPath = path;
-            renderLibraryDocs(allLibraryDocs);
+            if (currentCatalogMode === 'recent' && digestData) {
+                renderDigestDocs(digestData);
+            } else {
+                renderLibraryDocs(allLibraryDocs);
+            }
             const reader = document.getElementById('library-reader');
             if (reader) {
                 reader.innerHTML = '<div style="padding:20px; color:var(--text-muted);">Loading document...</div>';
