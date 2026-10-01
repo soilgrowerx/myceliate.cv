@@ -1,150 +1,390 @@
 const { Storage } = require('@google-cloud/storage');
 const express = require('express');
 const crypto = require('crypto');
-const fs = require('fs');
-const fsPromises = fs.promises;
-const path = require('path');
-const { execFile } = require('child_process');
-const app = express();
 
+const app = express();
 const storage = new Storage();
 const BUCKET = process.env.GCS_BUCKET_NAME || 'mycelial-brain-storage';
-const PREFIX = 'brain/doc-';
-const VAULT_PATH = process.env.VAULT_PATH;
+const AUTH_TOKEN = process.env.MCP_AUTH_TOKEN || '';
+const PROTOCOL_VERSION = '2024-11-05';
+const COUNTER_FILE = '_sequence.counter';
+const COUNTER_INIT = 405;
+
+// CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Brain-Owner, X-Brain-Namespace, X-Brain-Author, X-Guardian-Source, Accept');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(express.json());
 
-function parseFrontmatter(content) {
-  if (!content || !content.startsWith('---')) return {};
-  const parts = content.split('---');
-  if (parts.length < 3) return {};
-  const yamlText = parts[1];
-  const metadata = {};
-  const lines = yamlText.split('\n');
-  for (const line of lines) {
-    const idx = line.indexOf(':');
-    if (idx !== -1) {
-      const key = line.slice(0, idx).trim().toLowerCase();
-      const val = line.slice(idx + 1).trim().replace(/^['"]|['"]$/g, '');
-      metadata[key] = val;
-    }
-  }
-  return metadata;
-}
+// In-memory doc cache
+let docCache = null; // Map<path, DocEntry>
+let cacheBuiltAt = 0;
+let rebuildPromise = null;
+let lastRebuildMs = 0;
+const pendingWrites = new Map();
 
-function parseHeaders(req) {
-  const h = req.headers || {};
-  const out = {};
-  if (h['x-brain-owner']) out.owner = h['x-brain-owner'].toString();
-  if (h['x-brain-namespace']) out.namespace = h['x-brain-namespace'].toString();
-  if (h['x-brain-author']) out.author = h['x-brain-author'].toString();
-  if (h['x-brain-tags']) {
-    try { out.tags = JSON.parse(h['x-brain-tags'].toString()); } catch (e) { out.tags = String(h['x-brain-tags']).split(',').map(s => s.trim()).filter(Boolean); }
-  }
-  return out;
-}
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const FETCH_CONCURRENCY = 50;
 
-async function readDoc(docPath) {
-  if (VAULT_PATH) {
-    try {
-      const fullPath = path.join(VAULT_PATH, docPath + '.json');
-      const contents = await fsPromises.readFile(fullPath, 'utf8');
-      return JSON.parse(contents);
-    } catch (e) {
-      try {
-        const [contents] = await storage.bucket(BUCKET).file('brain/' + docPath + '.json').download();
-        return JSON.parse(contents);
-      } catch (innerE) {
-        const [contents] = await storage.bucket(BUCKET).file(docPath + '.json').download();
-        return JSON.parse(contents);
+const STOP_WORDS = new Set([
+  'the', 'a', 'an', 'is', 'are', 'was', 'were', 'how', 'does', 'do', 'what',
+  'and', 'to', 'of', 'in', 'for', 'with', 'on', 'at', 'by', 'this', 'that',
+  'it', 'he', 'she', 'they'
+]);
+
+function extractTitleAndTimestamp(content) {
+  let title = '';
+  let timestamp = '';
+  if (!content) return { title, timestamp };
+
+  if (content.startsWith('---')) {
+    const parts = content.split('---');
+    if (parts.length >= 3) {
+      const yaml = parts[1];
+      const lines = yaml.split('\n');
+      for (const line of lines) {
+        const idx = line.indexOf(':');
+        if (idx !== -1) {
+          const key = line.slice(0, idx).trim().toLowerCase();
+          const val = line.slice(idx + 1).trim().replace(/^['"]|['"]$/g, '');
+          if (key === 'title') title = val;
+          if (key === 'timestamp' || key === 'date') timestamp = val;
+        }
       }
     }
-  } else {
-    try {
-      const [contents] = await storage.bucket(BUCKET).file('brain/' + docPath + '.json').download();
-      return JSON.parse(contents);
-    } catch (e) {
-      const [contents] = await storage.bucket(BUCKET).file(docPath + '.json').download();
-      return JSON.parse(contents);
+  }
+
+  if (!title) {
+    const m = content.match(/^#\s+(.+)$/m);
+    if (m) title = m[1].trim();
+  }
+
+  return { title, timestamp };
+}
+
+function makeEntry(doc, fileName) {
+  const docPath = doc.path || (fileName ? fileName.replace(/\.json$/, '') : '');
+  const content = doc.content || '';
+  const tags = Array.isArray(doc.tags) ? doc.tags : [];
+  const meta = extractTitleAndTimestamp(content);
+
+  const title = doc.title || meta.title || '';
+  const timestamp = doc.timestamp || doc.updated || meta.timestamp || '';
+  const updated = doc.updated || doc.timestamp || meta.timestamp || '';
+
+  let timestampMs = 0;
+  if (timestamp) {
+    const parsed = new Date(timestamp).getTime();
+    if (!isNaN(parsed)) timestampMs = parsed;
+  }
+
+  return {
+    path: docPath,
+    content: content,
+    tags: tags,
+    title: title,
+    timestamp: timestamp,
+    timestampMs: timestampMs,
+    updated: updated,
+    textLower: content.toLowerCase(),
+    tagsLower: tags.join(' ').toLowerCase(),
+    pathLower: docPath.toLowerCase(),
+    titleLower: title.toLowerCase()
+  };
+}
+
+async function mapLimit(items, limit, fn) {
+  const results = [];
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i]);
     }
-  }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
-async function getNextDocPath() {
-  const [files] = await storage.bucket(BUCKET).getFiles({ prefix: PREFIX });
-  const nums = files.map(f => parseInt(f.name.replace(PREFIX, '').replace('.json', ''))).filter(n => !isNaN(n));
-  return 'doc-' + (Math.max(...nums, 0) + 1);
-}
+async function rebuildCache() {
+  const started = Date.now();
+  const [files] = await storage.bucket(BUCKET).getFiles();
+  const jsonFiles = files.filter(f => f.name.endsWith('.json') && !f.name.startsWith('_'));
 
-async function writeDoc(docPath, content, tags) {
-  if (VAULT_PATH) {
-    const fullPath = path.join(VAULT_PATH, docPath + '.json');
-    await fsPromises.mkdir(path.dirname(fullPath), { recursive: true });
-    await fsPromises.writeFile(fullPath, JSON.stringify({ path: docPath, content, tags, updated: new Date().toISOString() }));
-  } else {
-    const file = storage.bucket(BUCKET).file(docPath + '.json');
-    await file.save(JSON.stringify({ path: docPath, content, tags, updated: new Date().toISOString() }), { contentType: 'application/json' });
-  }
-}
-
-async function searchDocs(query, limit) {
-  const q = (query || '').toLowerCase().trim();
-  if (!q) return [];
-
-  const terms = q.split(/\s+/).filter(t => t.length > 1);
-  if (terms.length === 0) return [];
-  
-  const [files] = await storage.bucket(BUCKET).getFiles({ prefix: PREFIX });
-  const scored = [];
-  
-  for (const file of files) {
+  const entries = await mapLimit(jsonFiles, FETCH_CONCURRENCY, async file => {
     try {
       const [contents] = await file.download();
       const doc = JSON.parse(contents.toString());
-      const docText = (doc.content || '').toLowerCase();
-      const docTags = Array.isArray(doc.tags) ? doc.tags.map(t => t.toLowerCase()) : [];
-      const docPath = (doc.path || '').toLowerCase();
-      
-      let score = 0;
-      
-      // Exact phrase match: 10x
-      if (docText.includes(q)) score += 10;
+      if (!doc) return null;
+      return makeEntry(doc, file.name);
+    } catch (e) {
+      console.error('Skip file:', file.name, e.message);
+      return null;
+    }
+  });
 
-      // Path & Title match: 5x
-      for (const term of terms) {
-        if (docPath.includes(term)) score += 5;
-      }
-
-      // Tag match: 3x
-      for (const term of terms) {
-        if (docTags.some(t => t.includes(term))) score += 3;
-      }
-
-      // Body term occurrence: 1x
-      for (const term of terms) {
-        if (docText.includes(term)) score += 1;
-      }
-      
-      if (score > 0) {
-        let matchIdx = docText.indexOf(q);
-        if (matchIdx === -1) matchIdx = docText.indexOf(terms[0]);
-        const start = Math.max(0, matchIdx - 40);
-        const end = Math.min(doc.content.length, matchIdx + q.length + 80);
-        const preview = (start > 0 ? '...' : '') + doc.content.slice(start, end).replace(/\n+/g, ' ').trim() + '...';
-
-        scored.push({ path: doc.path, tags: doc.tags, preview, score });
-      }
-    } catch (e) { console.error('Error in search:', e.message); }
+  const next = new Map();
+  for (const e of entries) {
+    if (e && e.path) next.set(e.path, e);
   }
-  
-  const sorted = scored.sort((a, b) => b.score - a.score || parseInt(a.path.replace(/\D/g, '') || '0') - parseInt(b.path.replace(/\D/g, '') || '0'));
-  return limit ? sorted.slice(0, limit) : sorted;
+
+  // Preserve concurrent writes during cache rebuild
+  for (const [p, e] of pendingWrites) {
+    next.set(p, e);
+  }
+  pendingWrites.clear();
+
+  docCache = next;
+  cacheBuiltAt = Date.now();
+  lastRebuildMs = cacheBuiltAt - started;
+  console.log(`Cache rebuilt: ${next.size} docs in ${lastRebuildMs}ms (${jsonFiles.length} objects scanned)`);
+  return docCache;
 }
 
-app.get('/', (_, res) => res.json({ name: 'mycelial-brain', version: '2.0' }));
-app.get('/health', (_, res) => res.json({ status: 'ok' }));
+async function getDocIndex() {
+  const fresh = docCache && (Date.now() - cacheBuiltAt) < CACHE_TTL_MS;
+  if (fresh) return docCache;
 
-app.post('/mcp', async (req, res) => {
+  if (docCache) {
+    if (!rebuildPromise) {
+      rebuildPromise = rebuildCache()
+        .catch(e => {
+          console.error('Background rebuild failed:', e.message);
+          return docCache;
+        })
+        .finally(() => { rebuildPromise = null; });
+    }
+    return docCache;
+  }
+
+  if (!rebuildPromise) {
+    rebuildPromise = rebuildCache().finally(() => { rebuildPromise = null; });
+  }
+  return rebuildPromise;
+}
+
+function upsertCache(path, content, tags, updated) {
+  const now = updated || new Date().toISOString();
+  const entry = makeEntry({ path, content, tags: tags || [], updated: now });
+  if (docCache) {
+    docCache.set(path, entry);
+  }
+  pendingWrites.set(path, entry);
+}
+
+// Auth middleware
+function authMiddleware(req, res, next) {
+  if (!AUTH_TOKEN) return next();
+  const auth = req.headers.authorization || '';
+  const token = auth.replace(/^Bearer\s+/i, '');
+  if (token === AUTH_TOKEN) return next();
+  return res.status(401).json({ jsonrpc: '2.0', id: null, error: { code: -32001, message: 'Unauthorized' } });
+}
+
+// Atomic sequential ID allocator
+async function brain_allocate() {
+  const counterFile = storage.bucket(BUCKET).file(COUNTER_FILE);
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const [contents, meta] = await counterFile.download();
+      const rawCurrent = parseInt(contents.toString()) || 0;
+      const current = Math.max(rawCurrent, COUNTER_INIT);
+      const next = current + 1;
+      const opts = { contentType: 'text/plain' };
+      const gen = meta && meta.metadata ? meta.metadata.generation : undefined;
+      if (gen) opts.ifGenerationMatch = gen;
+      await counterFile.save(next.toString(), opts);
+      return `doc-${next}`;
+    } catch (e) {
+      if (e.code === 404) {
+        await counterFile.save(COUNTER_INIT.toString(), { contentType: 'text/plain' });
+        return `doc-${COUNTER_INIT + 1}`;
+      }
+      if (e.code === 412 && attempt < MAX_RETRIES - 1) continue;
+      throw e;
+    }
+  }
+
+  const docs = await getDocIndex();
+  const nums = Array.from(docs.keys())
+    .map(p => {
+      const m = /^doc-(\d+)$/.exec(p);
+      return m ? parseInt(m[1], 10) : 0;
+    })
+    .filter(n => !isNaN(n));
+  const maxNum = Math.max(COUNTER_INIT, ...nums, 0);
+  return `doc-${maxNum + 1}`;
+}
+
+async function writeDoc(docPath, content, tags) {
+  const file = storage.bucket(BUCKET).file(docPath + '.json');
+  const now = new Date().toISOString();
+  await file.save(JSON.stringify({ path: docPath, content, tags, updated: now }), { contentType: 'application/json' });
+  upsertCache(docPath, content, tags, now);
+}
+
+async function readDoc(docPath) {
+  try {
+    const [contents] = await storage.bucket(BUCKET).file(docPath + '.json').download();
+    return JSON.parse(contents);
+  } catch (e) {
+    try {
+      const [contents] = await storage.bucket(BUCKET).file('brain/' + docPath + '.json').download();
+      return JSON.parse(contents);
+    } catch (e2) {
+      throw new Error(`Document not found: ${docPath}`);
+    }
+  }
+}
+
+// Tokenized Case-Insensitive Search with Recency Weighting
+async function searchDocs(query, limit) {
+  const q = (query || '').trim();
+  const docsMap = await getDocIndex();
+  const docs = Array.from(docsMap.values());
+  const now = Date.now();
+
+  // Test 4: Empty query or "*" returns most recent docs
+  if (!q || q === '*') {
+    const sorted = [...docs].sort((a, b) => (b.timestampMs - a.timestampMs) || b.path.localeCompare(a.path));
+    const effectiveLimit = limit || 20;
+    return sorted.slice(0, effectiveLimit).map(d => ({
+      path: d.path,
+      tags: d.tags,
+      title: d.title,
+      preview: dContentPreview(docPreviewContent(d)),
+      score: 1.0,
+      updated: d.updated || d.timestamp
+    }));
+  }
+
+  const terms = q.toLowerCase().split(/\s+/).filter(t => !STOP_WORDS.has(t) && t.length > 1);
+  if (terms.length === 0) {
+    const sorted = [...docs].sort((a, b) => (b.timestampMs - a.timestampMs) || b.path.localeCompare(a.path));
+    return sorted.slice(0, limit || 20).map(d => ({
+      path: d.path,
+      tags: d.tags,
+      title: d.title,
+      preview: dContentPreview(docPreviewContent(d)),
+      score: 1.0,
+      updated: d.updated || d.timestamp
+    }));
+  }
+
+  const scored = [];
+  for (const doc of docs) {
+    let score = 0;
+    for (const term of terms) {
+      if (doc.textLower.includes(term)) score += 1;
+      if (doc.tagsLower.includes(term)) score += 2;
+      if (doc.pathLower.includes(term) || doc.titleLower.includes(term)) score += 1;
+    }
+    if (score > 0) {
+      if (doc.timestampMs > 0) {
+        const ageDays = (now - doc.timestampMs) / 86400000;
+        if (ageDays >= 0) {
+          if (ageDays < 30) score += 0.5;
+          if (ageDays < 7) score += 0.5;
+        }
+      }
+      scored.push({
+        path: doc.path,
+        tags: doc.tags,
+        title: doc.title,
+        preview: dContentPreview(doc.content),
+        score: Math.round(score * 10) / 10
+      });
+    }
+  }
+
+  const seqNum = p => {
+    const m = /^doc-(\d+)$/.exec(p);
+    return m ? +m[1] : 0;
+  };
+
+  scored.sort((a, b) => b.score - a.score || (b.timestampMs - a.timestampMs) || (seqNum(b.path) - seqNum(a.path)));
+  return limit ? scored.slice(0, limit) : scored;
+}
+
+function docPreviewContent(d) {
+  return d.content || '';
+}
+
+function dContentPreview(content) {
+  if (!content) return '';
+  const clean = content.replace(/\n+/g, ' ').trim();
+  return clean.slice(0, 150) + (clean.length > 150 ? '...' : '');
+}
+
+// Additive Paginated brain_list
+async function listDocs(args) {
+  const docsMap = await getDocIndex();
+  let all = Array.from(docsMap.values());
+
+  if (args && args.prefix) {
+    const prefix = args.prefix.toLowerCase();
+    all = all.filter(d => d.pathLower.startsWith(prefix));
+  }
+
+  const seqNum = p => {
+    const m = /^doc-(\d+)$/.exec(p);
+    return m ? +m[1] : Number.MAX_SAFE_INTEGER;
+  };
+
+  all.sort((a, b) => {
+    const na = seqNum(a.path);
+    const nb = seqNum(b.path);
+    if (na !== nb) return na - nb;
+    return a.path.localeCompare(b.path);
+  });
+
+  const total_count = all.length;
+  const offset = Math.max(0, (args && typeof args.offset === 'number') ? args.offset : 0);
+  const requestedLimit = (args && typeof args.limit === 'number') ? args.limit : 50;
+  const limit = Math.min(Math.max(1, requestedLimit), 500);
+
+  const slice = all.slice(offset, offset + limit);
+  const has_more = (offset + slice.length) < total_count;
+
+  return {
+    docs: slice.map(d => ({ path: d.path, tags: d.tags })),
+    total_count,
+    has_more,
+    offset,
+    limit
+  };
+}
+
+// Routes
+app.get('/', (_, res) => res.json({ name: 'mycelial-brain', version: '3.2.0', protocol: PROTOCOL_VERSION, status: 'ready' }));
+
+app.get('/mcp', (_, res) => res.json({
+  name: 'mycelial-brain',
+  version: '3.2.0',
+  protocol: PROTOCOL_VERSION,
+  status: 'ready',
+  transport: 'http',
+  endpoint: '/mcp'
+}));
+
+app.get('/health', (_, res) => res.json({
+  status: 'ok',
+  cacheSize: docCache ? docCache.size : 0,
+  cacheAgeMs: docCache ? Date.now() - cacheBuiltAt : null,
+  lastRebuildMs,
+  rebuildInFlight: !!rebuildPromise
+}));
+
+app.post('/mcp', authMiddleware, async (req, res) => {
   const { method, params, id } = req.body || {};
   try {
     if (method === 'initialize') {
@@ -152,141 +392,166 @@ app.post('/mcp', async (req, res) => {
         jsonrpc: '2.0',
         id,
         result: {
-          protocolVersion: "2024-11-05",
-          capabilities: {},
-          serverInfo: { name: "mycelial_brain", version: "2.0.0" }
+          protocolVersion: PROTOCOL_VERSION,
+          serverInfo: { name: 'mycelial_brain', version: '3.2.0' },
+          capabilities: {
+            tools: { listChanged: false }
+          }
         }
       });
     }
+
     if (method === 'tools/list') {
       const tools = [
-        { name: 'brain_search', inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'] }},
-        { name: 'brain_read', inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] }},
-        { name: 'brain_write', inputSchema: { type: 'object', properties: { content: { type: 'string' }, tags: { type: 'array', items: { type: 'string' } }, path: { type: 'string' }, owner: { type: 'string' }, namespace: { type: 'string' } }, required: ['content'] }},
-        { name: 'brain_list', inputSchema: { type: 'object', properties: {}}},
-        { name: 'stim_write', inputSchema: { type: 'object', properties: { namespace: { type: 'string' }, content: { type: 'string' }, author: { type: 'string' } }, required: ['namespace', 'content', 'author'] }},
-        { name: 'log_outcome', inputSchema: { type: 'object', properties: { action_doc: { type: 'string' }, action_summary: { type: 'string' }, outcome: { type: 'string' }, outcome_type: { type: 'string' }, date: { type: 'string' }, context: { type: 'string' }, owner: { type: 'string' }, namespace: { type: 'string' }, tags: { type: 'array', items: { type: 'string' } } }, required: ['action_doc','action_summary','outcome','outcome_type','date'] }}
-      ];
-      return res.json({ jsonrpc: '2.0', id, result: { tools: tools }});
-    }
-    if (method === 'tools/call') {
-      const { name, arguments: args } = params;
-            if (name === 'stim_write') {
-        const { namespace, content, author } = args;
-        const headerMeta = parseHeaders(req);
-        
-        // RBAC check for namespace ownership
-        if ((namespace || headerMeta.namespace || '').toLowerCase().startsWith('bodhi')) {
-          const effectiveAuthor = author || headerMeta.author;
-          if (!effectiveAuthor || !effectiveAuthor.toLowerCase().includes('bodhi')) {
-            return res.json({
-              jsonrpc: '2.0',
-              id,
-              error: {
-                code: 403,
-                message: `Forbidden: Writes to bodhi/ namespace are restricted to bodhi owner. Request author: ${effectiveAuthor || 'unknown'}`
-              }
-            });
+        {
+          name: 'brain_search',
+          description: 'Search the mycelial brain by keywords with tokenized scoring and recency weighting',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'Search keywords or phrase' },
+              limit: { type: 'number', description: 'Max number of results to return' }
+            },
+            required: ['query']
           }
-        }
-        
-        const timestamp = new Date().toISOString();
-        const content_hash = crypto.createHash('sha256').update(content).digest('hex');
-        const previous_hash = "GENESIS";
-        const parent_doc = crypto.randomUUID();
-        
-        const effectiveNamespace = namespace || headerMeta.namespace || 'default';
-        const effectiveAuthor = author || headerMeta.author || 'unknown';
-        
-        const yamlHeader = `---
-owner: George Steward
-namespace: ${effectiveNamespace}
-author: ${effectiveAuthor}
-timestamp: ${timestamp}
-content_hash: ${content_hash}
-previous_hash: ${previous_hash}
-parent_doc: ${parent_doc}
----
-
-`;
-        const fullContent = yamlHeader + content;
-        
-        let savePath = "";
-        if (VAULT_PATH) {
-          savePath = path.join(VAULT_PATH, 'ARBORETUM', 'Active', effectiveNamespace, `${content_hash}.md`);
-          await fsPromises.mkdir(path.dirname(savePath), { recursive: true });
-          await fsPromises.writeFile(savePath, fullContent);
-        } else {
-          savePath = `ARBORETUM/Active/${effectiveNamespace}/${content_hash}.md`;
-          const file = storage.bucket(BUCKET).file(savePath);
-          await file.save(fullContent, { contentType: 'text/markdown' });
-        }
-        
-        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: `Saved STIM document to ${savePath}. Hash: ${content_hash}` }]}});
-      }
-if (name === 'brain_write') {
-        const docPath = args.path || await getNextDocPath();
-        const incomingMeta = parseFrontmatter(args.content);
-        const incomingOwner = (args.owner || incomingMeta.owner || '').toString().trim();
-        const incomingNamespace = (args.namespace || incomingMeta.namespace || '').toString().trim();
-        
-        // RBAC checks
-        const protectedDocs = ['doc-141', 'doc-142', 'doc-176', 'doc-177', 'doc-181', 'doc-215', 'doc-217'];
-        const isProtectedPath = protectedDocs.includes(docPath) || docPath.startsWith('bodhi/');
-        
-        let isExistingBodhiOwned = false;
-        try {
-          const existingDoc = await readDoc(docPath);
-          if (existingDoc) {
-            const existingMeta = parseFrontmatter(existingDoc.content);
-            if (existingMeta.owner === 'bodhi' || existingMeta.namespace === 'bodhi') {
-              isExistingBodhiOwned = true;
+        },
+        {
+          name: 'brain_read',
+          description: 'Read a specific brain document by path',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: 'Path of the document to read (e.g. doc-397)' }
+            },
+            required: ['path']
+          }
+        },
+        {
+          name: 'brain_write',
+          description: 'Write a document to the brain with optional tags and namespace',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              content: { type: 'string' },
+              tags: { type: 'array', items: { type: 'string' } },
+              path: { type: 'string' },
+              owner: { type: 'string' },
+              namespace: { type: 'string' }
+            },
+            required: ['content']
+          }
+        },
+        {
+          name: 'brain_list',
+          description: 'List brain documents with pagination support',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              limit: { type: 'number', description: 'Number of documents to return (default 50, max 500)' },
+              offset: { type: 'number', description: 'Pagination offset (default 0)' },
+              prefix: { type: 'string', description: 'Optional prefix filter' }
             }
           }
-        } catch (e) {
-          // ignore error if file not found
-        }
-        
-        if (isProtectedPath || isExistingBodhiOwned) {
-          if (incomingOwner !== 'bodhi') {
-            return res.json({
-              jsonrpc: '2.0',
-              id,
-              error: {
-                code: 403,
-                message: `Forbidden: Namespace ownership violation. Path '${docPath}' is owned by bodhi. Request owner: ${incomingOwner || 'unknown'}`
-              }
-            });
+        },
+        {
+          name: 'stim_write',
+          description: 'Write a STIM nugget to the brain',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              content: { type: 'string' },
+              namespace: { type: 'string' },
+              author: { type: 'string' }
+            },
+            required: ['content', 'namespace', 'author']
+          }
+        },
+        {
+          name: 'log_outcome',
+          description: 'Log a verifiable action and outcome to the reputation ledger',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              action_doc: { type: 'string' },
+              action_summary: { type: 'string' },
+              outcome: { type: 'string' },
+              outcome_type: { type: 'string' },
+              date: { type: 'string' },
+              context: { type: 'string' },
+              owner: { type: 'string' },
+              namespace: { type: 'string' },
+              tags: { type: 'array', items: { type: 'string' } }
+            },
+            required: ['action_doc', 'action_summary', 'outcome', 'outcome_type', 'date']
+          }
+        },
+        {
+          name: 'brain_vault_write',
+          description: 'Write a guardian-synced vault document',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              vault: { type: 'string' },
+              path: { type: 'string' },
+              content: { type: 'string' },
+              tags: { type: 'array', items: { type: 'string' } }
+            },
+            required: ['vault', 'path', 'content']
           }
         }
-        
-        const content = args.content || '';
-        const enriched = incomingOwner && !incomingMeta.owner
-          ? `---\nowner: ${incomingOwner}\nnamespace: ${incomingNamespace || 'unknown'}\nauthor: ${incomingOwner}\ntimestamp: ${new Date().toISOString()}\ncontent_hash: ${crypto.createHash('sha256').update(content).digest('hex')}\nprevious_hash: GENESIS\nparent_doc: ${crypto.randomUUID()}\n---\n\n${content}`
-          : content;
-        await writeDoc(docPath, enriched, args.tags || []);
-        
-        // Extract entities for graph layer (fire-and-forget)
-        if (VAULT_PATH) {
-          const entityScript = path.join(VAULT_PATH, '.hermes', 'skills', 'mcp', 'extract-entities.py');
-          const docJsonPath = path.join(VAULT_PATH, docPath + '.json');
-          execFile('python3', [entityScript, docJsonPath, VAULT_PATH], { timeout: 5000 }).catch(() => {});
+      ];
+      return res.json({ jsonrpc: '2.0', id, result: { tools } });
+    }
+
+    if (method === 'tools/call') {
+      const { name, arguments: args } = params;
+
+      if (name === 'brain_write') {
+        const allowedNs = ['hermes/', 'bodhi/', 'm-agent/', 'kai/', 'sylvan/', 'arbor/', 'sequoia/', 'quercus/'];
+        if (args.path) {
+          if (args.path.startsWith('vault/')) {
+            return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'ERROR: reserved namespace. Use brain_vault_write for vault paths.' }] } });
+          }
+          if (args.path.startsWith('doc-') && args.path.includes('/')) {
+            return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'ERROR: sequential docs must be flat doc-N, no subpaths.' }] } });
+          }
+          const hasNs = allowedNs.some(ns => args.path.startsWith(ns));
+          if (!hasNs && args.path.includes('/')) {
+            return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'ERROR: unknown namespace prefix. Allowed: ' + allowedNs.join(', ') + ', or flat doc-N without slash.' }] } });
+          }
         }
-        
-        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'Saved ' + docPath }]}});
+
+        const path = args.path || await brain_allocate();
+        await writeDoc(path, args.content, args.tags || []);
+        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'Saved ' + path }] } });
       }
+
       if (name === 'brain_search') {
         const results = await searchDocs(args.query, args.limit);
-        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(results) }]}});
+        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(results) }] } });
       }
+
       if (name === 'brain_read') {
         const doc = await readDoc(args.path);
-        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: doc.content }]}});
+        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: doc.content }] } });
       }
+
+      if (name === 'brain_list') {
+        const listResult = await listDocs(args);
+        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(listResult) }] } });
+      }
+
+      if (name === 'stim_write') {
+        const path = await brain_allocate();
+        const tags = ['stim', args.namespace || 'general', args.author || 'unknown'];
+        await writeDoc(path, args.content, tags);
+        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'STIM saved ' + path }] } });
+      }
+
       if (name === 'log_outcome') {
         const actionDoc = args.action_doc;
         let existing = null;
-        try { existing = await readDoc(actionDoc); } catch (e) { /* new doc */ }
+        try { existing = await readDoc(actionDoc); } catch (e) { /* create new placeholder */ }
         const now = new Date().toISOString();
         if (!existing) {
           const placeholder = `---\nowner: ${args.owner || 'unknown'}\nnamespace: ${args.namespace || 'unknown'}\nauthor: ${args.owner || 'unknown'}\ntimestamp: ${now}\ncontent_hash: ${crypto.createHash('sha256').update('').digest('hex')}\nprevious_hash: GENESIS\nparent_doc: ${crypto.randomUUID()}\n---\n\n# ${actionDoc}\nAuto-created placeholder for outcome logging.\n`;
@@ -295,63 +560,34 @@ if (name === 'brain_write') {
         }
         const appended = (existing.content || '') + `\n\n## Outcome - ${args.date || now}\n- Summary: ${args.action_summary}\n- Outcome: ${args.outcome}\n- Type: ${args.outcome_type}\n${args.context ? '- Context: ' + args.context : ''}\n`;
         await writeDoc(actionDoc, appended, existing.tags || []);
-        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'Appended outcome to ' + actionDoc }]}});
+        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'Appended outcome to ' + actionDoc }] } });
       }
-      if (name === 'brain_list') {
-        const [files1] = await storage.bucket(BUCKET).getFiles({ prefix: 'brain/doc-' });
-        const [files2] = await storage.bucket(BUCKET).getFiles({ prefix: 'doc-' });
-        const allFiles = [...files1, ...files2];
-        const seen = new Set();
-        const uniqueFiles = [];
-        for (const f of allFiles) {
-          const baseName = path.basename(f.name, '.json');
-          if (baseName.startsWith('doc-') && !seen.has(baseName)) {
-            seen.add(baseName);
-            uniqueFiles.push(f);
-          }
+
+      if (name === 'brain_vault_write') {
+        const vault = args.vault;
+        const path = args.path;
+        const allowedVaults = ['FOREST', 'ARBORETUM', 'UNDERSTORY', 'SEED_BANK', 'COMPOST', 'LIBRARY'];
+        if (!allowedVaults.includes(vault)) {
+          return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'ERROR: invalid vault name. Allowed: ' + allowedVaults.join(', ') }] } });
         }
-        
-        // Sort numerically to have stable pagination output
-        uniqueFiles.sort((a, b) => {
-          const na = parseInt(path.basename(a.name, '.json').replace('doc-', ''));
-          const nb = parseInt(path.basename(b.name, '.json').replace('doc-', ''));
-          if (isNaN(na)) return 1;
-          if (isNaN(nb)) return -1;
-          return na - nb;
-        });
-
-        const limit = (args && typeof args.limit === 'number') ? args.limit : null;
-        const offset = (args && typeof args.offset === 'number') ? args.offset : 0;
-        const paginatedFiles = limit ? uniqueFiles.slice(offset, offset + limit) : uniqueFiles.slice(offset);
-
-        const docs = await Promise.all(paginatedFiles.map(async f => {
-          try {
-            const [c] = await f.download();
-            return JSON.parse(c.toString());
-          } catch (e) {
-            console.error('Error downloading/parsing', f.name, e.message);
-            return null;
-          }
-        }));
-
-        const validDocs = docs.filter(d => d !== null);
-        return res.json({
-          jsonrpc: '2.0',
-          id,
-          result: {
-            content: [{
-              type: 'text',
-              text: JSON.stringify(validDocs.map(d => ({ path: d.path, tags: d.tags })))
-            }]
-          }
-        });
+        const guardianHeader = req.headers['x-guardian-source'];
+        if (!guardianHeader) {
+          return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'ERROR: X-Guardian-Source header required for vault writes' }] } });
+        }
+        const docPath = `vault/${vault}/${path}`.replace(/\.md$/, '');
+        await writeDoc(docPath, args.content, args.tags || [vault.toLowerCase(), 'guardian-sync']);
+        return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: 'Saved ' + docPath }] } });
       }
     }
-    res.json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' }});
+
+    res.json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } });
   } catch (e) {
-    res.json({ jsonrpc: '2.0', id, error: { code: -32603, message: e.message }});
+    res.json({ jsonrpc: '2.0', id, error: { code: -32603, message: e.message } });
   }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log('Mycelial Brain v2.0 ready'));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Mycelial Brain v3.2.0 ready (MCP ${PROTOCOL_VERSION})`);
+  getDocIndex().catch(e => console.error('Warmup failed:', e.message));
+});
